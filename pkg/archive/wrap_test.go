@@ -4,10 +4,11 @@ import (
 	"archive/tar"
 	"bytes"
 	"io"
-	"testing"
+
+	"github.com/go-check/check"
 )
 
-func TestGenerateEmptyFile(t *testing.T) {
+func (s *DockerSuite) TestGenerateEmptyFile(t *check.C) {
 	archive, err := Generate("emptyFile")
 	if err != nil {
 		t.Fatal(err)
@@ -52,7 +53,7 @@ func TestGenerateEmptyFile(t *testing.T) {
 	}
 }
 
-func TestGenerateWithContent(t *testing.T) {
+func (s *DockerSuite) TestGenerateWithContent(t *check.C) {
 	archive, err := Generate("file", "content")
 	if err != nil {
 		t.Fatal(err)
