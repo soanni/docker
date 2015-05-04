@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/Sirupsen/logrus"
 )
@@ -94,10 +93,23 @@ func TestStdCopy(t *testing.T) {
 	}()
 
 	go func() {
-		for i := 0; i < 2; i++ {
-			writer.Write(makeBytes(0x01, 2*16908546))
-			time.Sleep(100 * time.Millisecond)
-		}
+		// Generating an array of byte.
+		// - Its size is 33686026, to size of a frame (frameSize + StdWriterPrefixLen)
+		// - starts with 1 to simulate stdout
+		writer.Write(makeBytes(0x01, 33686025))
+		// writer.Write(makeBytes(0x01, 100))
+		// time.Sleep(10 * time.Millisecond)
+		// And generate one with invalid size to get out.
+		writer.Write(makeBytes(0x02, 10))
+		// time.Sleep(10 * time.Millisecond)
+		// writer.Write(makeBytes(0x02, 2*33686026))
+		// time.Sleep(100 * time.Millisecond)
+		// For fallthrough
+		// writer.Write(makeBytes(0x00, 2*33686026))
+		// time.Sleep(100 * time.Millisecond)
+		// For nothing really
+		// writer.Write(makeBytes(0x01, 250))
+		//}
 		writer.Close()
 		done <- true
 	}()

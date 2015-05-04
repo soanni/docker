@@ -146,7 +146,8 @@ func StdCopy(dstout, dsterr io.Writer, src io.Reader) (written int64, err error)
 			nr2, er = src.Read(buf[nr:])
 			nr += nr2
 			if er == io.EOF {
-				logrus.Infof("%v", frameSize+StdWriterPrefixLen)
+				logrus.Infof("EOF framesize + stdWriterPrefixLen : %v", frameSize+StdWriterPrefixLen)
+				logrus.Infof("EOF nr %v", nr)
 				if nr < frameSize+StdWriterPrefixLen {
 					// logrus.Debugf("Corrupted frame: %v", buf[StdWriterPrefixLen:nr])
 					logrus.Infof("Corrupted frame")
@@ -160,6 +161,7 @@ func StdCopy(dstout, dsterr io.Writer, src io.Reader) (written int64, err error)
 			}
 		}
 
+		logrus.Infof("buf[%v:%v]", StdWriterPrefixLen, frameSize+StdWriterPrefixLen)
 		// Write the retrieved frame (without header)
 		nw, ew = out.Write(buf[StdWriterPrefixLen : frameSize+StdWriterPrefixLen])
 		if ew != nil {
