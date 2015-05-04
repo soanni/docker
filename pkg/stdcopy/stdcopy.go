@@ -83,6 +83,8 @@ func StdCopy(dstout, dsterr io.Writer, src io.Reader) (written int64, err error)
 		frameSize int
 	)
 
+	logrus.Infof("nr %d", nr)
+	logrus.Infof("StdWriterPrefixLen %d", StdWriterPrefixLen)
 	for {
 		// Make sure we have at least a full header
 		for nr < StdWriterPrefixLen {
@@ -91,52 +93,63 @@ func StdCopy(dstout, dsterr io.Writer, src io.Reader) (written int64, err error)
 			nr += nr2
 			if er == io.EOF {
 				if nr < StdWriterPrefixLen {
-					logrus.Debugf("Corrupted prefix: %v", buf[:nr])
+					logrus.Infof("Corrupted prefix: %v", buf[:nr])
 					return written, nil
 				}
 				break
 			}
 			if er != nil {
-				logrus.Debugf("Error reading header: %s", er)
+				logrus.Infof("Error reading header: %s", er)
 				return 0, er
 			}
 		}
 
+		logrus.Infof("StdWriterFdIndex %d", StdWriterFdIndex)
+		logrus.Infof("buf[StdWriterFdIndex] %d", buf[StdWriterFdIndex])
+		// logrus.Infof("%v", buf)
 		// Check the first byte to know where to write
 		switch buf[StdWriterFdIndex] {
 		case 0:
+			logrus.Infof("fallthrough")
 			fallthrough
 		case 1:
 			// Write on stdout
+			logrus.Infof("out")
 			out = dstout
 		case 2:
 			// Write on stderr
+			logrus.Infof("err")
 			out = dsterr
 		default:
-			logrus.Debugf("Error selecting output fd: (%d)", buf[StdWriterFdIndex])
+			logrus.Infof("Error selecting output fd: (%d)", buf[StdWriterFdIndex])
 			return 0, ErrInvalidStdHeader
 		}
 
 		// Retrieve the size of the frame
 		frameSize = int(binary.BigEndian.Uint32(buf[StdWriterSizeIndex : StdWriterSizeIndex+4]))
-		logrus.Debugf("framesize: %d", frameSize)
+		logrus.Infof("framesize: %d", frameSize)
 
 		// Check if the buffer is big enough to read the frame.
 		// Extend it if necessary.
 		if frameSize+StdWriterPrefixLen > bufLen {
-			logrus.Debugf("Extending buffer cap by %d (was %d)", frameSize+StdWriterPrefixLen-bufLen+1, len(buf))
+			logrus.Infof("Extending buffer cap by %d (was %d)", frameSize+StdWriterPrefixLen-bufLen+1, len(buf))
 			buf = append(buf, make([]byte, frameSize+StdWriterPrefixLen-bufLen+1)...)
 			bufLen = len(buf)
 		}
 
+		logrus.Infof("frameSize %v", frameSize)
+		logrus.Infof("StdWriterPrefixLen %v", StdWriterPrefixLen)
+		logrus.Infof("nr %v", nr)
 		// While the amount of bytes read is less than the size of the frame + header, we keep reading
 		for nr < frameSize+StdWriterPrefixLen {
 			var nr2 int
 			nr2, er = src.Read(buf[nr:])
 			nr += nr2
 			if er == io.EOF {
+				logrus.Infof("%v", frameSize+StdWriterPrefixLen)
 				if nr < frameSize+StdWriterPrefixLen {
-					logrus.Debugf("Corrupted frame: %v", buf[StdWriterPrefixLen:nr])
+					// logrus.Debugf("Corrupted frame: %v", buf[StdWriterPrefixLen:nr])
+					logrus.Infof("Corrupted frame")
 					return written, nil
 				}
 				break
