@@ -2,9 +2,13 @@ package stdcopy
 
 import (
 	"bytes"
+	"io"
 	"io/ioutil"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/Sirupsen/logrus"
 )
 
 func TestNewStdWriter(t *testing.T) {
@@ -69,6 +73,52 @@ func TestStdCopyWithCorruptedPrefix(t *testing.T) {
 	if written != 0 {
 		t.Fatalf("StdCopy should have written 0, but has written %d", written)
 	}
+}
+
+func TestStdCopy(t *testing.T) {
+	logrus.Infof("stcopy....")
+	reader, writer := io.Pipe()
+	dstOut := NewStdWriter(ioutil.Discard, Stdout)
+	dstErr := NewStdWriter(ioutil.Discard, Stderr)
+
+	done := make(chan bool)
+	writtenChannel := make(chan int64)
+
+	go func() {
+		written, err := StdCopy(dstOut, dstErr, reader)
+		if err != nil {
+			t.Fatal(err)
+		}
+		logrus.Infof("written %v", written)
+		writtenChannel <- written
+	}()
+
+	go func() {
+		for i := 0; i < 2; i++ {
+			writer.Write(makeBytes(0x01, 2*16908546))
+			time.Sleep(100 * time.Millisecond)
+		}
+		writer.Close()
+		done <- true
+	}()
+
+	<-done
+	written := <-writtenChannel
+
+	if written != 0 {
+		logrus.Infof("hum.. %v", written)
+	}
+}
+
+func makeBytes(b byte, length int) []byte {
+	bytes := make([]byte, length)
+
+	bytes[0] = b
+	for i := 1; i < length; i++ {
+		bytes[i] = 0x02
+	}
+
+	return bytes
 }
 
 func BenchmarkWrite(b *testing.B) {
