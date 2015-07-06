@@ -203,6 +203,9 @@ func ValidatePath(val string) (string, error) {
 	}
 
 	splited := strings.SplitN(val, ":", 2)
+	if splited[0] == "" {
+		return val, fmt.Errorf("bad format for volumes: %s", val)
+	}
 	if len(splited) == 1 {
 		containerPath = splited[0]
 		val = path.Clean(splited[0])
@@ -221,6 +224,9 @@ func ValidateEnv(val string) (string, error) {
 	arr := strings.Split(val, "=")
 	if len(arr) > 1 {
 		return val, nil
+	}
+	if !EnvironmentVariableRegexp.MatchString(arr[0]) {
+		return val, ErrBadEnvVariable{fmt.Sprintf("variable '%s' is not a valid environment variable", val)}
 	}
 	if !doesEnvExist(val) {
 		return val, nil
@@ -277,7 +283,7 @@ func ValidateExtraHost(val string) (string, error) {
 }
 
 func ValidateLabel(val string) (string, error) {
-	if strings.Count(val, "=") != 1 {
+	if strings.Count(val, "=") < 1 {
 		return "", fmt.Errorf("bad attribute format: %s", val)
 	}
 	return val, nil

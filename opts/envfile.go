@@ -4,7 +4,14 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
+)
+
+var (
+	// Variables set by the user must have a name consisting solely of
+	// alphabetics, numerics, and underscores - the first of which must not be numeric.
+	EnvironmentVariableRegexp = regexp.MustCompile("^[[:alpha:]_][[:alpha:][:digit:]_]*$")
 )
 
 /*
@@ -23,14 +30,15 @@ func ParseEnvFile(filename string) ([]string, error) {
 		line := scanner.Text()
 		// line is not empty, and not starting with '#'
 		if len(line) > 0 && !strings.HasPrefix(line, "#") {
-			if strings.Contains(line, "=") {
-				data := strings.SplitN(line, "=", 2)
+			data := strings.SplitN(line, "=", 2)
 
-				// trim the front of a variable, but nothing else
-				variable := strings.TrimLeft(data[0], whiteSpaces)
-				if strings.ContainsAny(variable, whiteSpaces) {
-					return []string{}, ErrBadEnvVariable{fmt.Sprintf("variable '%s' has white spaces", variable)}
-				}
+			// trim the front of a variable, but nothing else
+			variable := strings.TrimLeft(data[0], whiteSpaces)
+
+			if !EnvironmentVariableRegexp.MatchString(variable) {
+				return []string{}, ErrBadEnvVariable{fmt.Sprintf("variable '%s' is not a valid environment variable", variable)}
+			}
+			if len(data) > 1 {
 
 				// pass the value through, no trimming
 				lines = append(lines, fmt.Sprintf("%s=%s", variable, data[1]))
