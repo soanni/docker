@@ -281,7 +281,12 @@ func TestValidatePath(t *testing.T) {
 		"/with space",
 		"/home:/with space",
 		"relative:/absolute-path",
+		"hostPath:/containerPath:ro",
+		"/hostPath:/containerPath:rw",
 		"/rw:/ro",
+		"/path:rw",
+		"/path:ro",
+		"/rw:rw",
 	}
 	invalid := map[string]string{
 		"":        "bad format for volumes: ",
@@ -299,10 +304,7 @@ func TestValidatePath(t *testing.T) {
 		":::":     "bad format for volumes: :::",
 		"/tmp:::": "bad format for volumes: /tmp:::",
 		":/tmp::": "bad format for volumes: :/tmp::",
-		"path:ro": "ro is not an absolute path",
-		// These should work if we handle modes properly
-		"/path:rw": "rw is not an absolute path",
-		"/rw:rw":   "rw is not an absolute path",
+		"path:ro": "path is not an absolute path",
 	}
 
 	for _, path := range valid {

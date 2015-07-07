@@ -197,23 +197,36 @@ func ValidateLink(val string) (string, error) {
 //    [host-dir:]container-path[:rw|ro]  - but doesn't validate the mode part
 func ValidatePath(val string) (string, error) {
 	var containerPath string
+	var mode string
 
 	if strings.Count(val, ":") > 2 {
 		return val, fmt.Errorf("bad format for volumes: %s", val)
 	}
 
-	splited := strings.SplitN(val, ":", 2)
+	splited := strings.SplitN(val, ":", 3)
 	if splited[0] == "" {
 		return val, fmt.Errorf("bad format for volumes: %s", val)
 	}
-	if len(splited) == 1 {
+	switch len(splited) {
+	case 1:
 		containerPath = splited[0]
-		val = path.Clean(splited[0])
-	} else {
+		val = path.Clean(containerPath)
+	case 2:
+		if splited[1] == "rw" || splited[1] == "ro" {
+			containerPath = splited[0]
+			mode = splited[1]
+			val = fmt.Sprintf("%s:%s", path.Clean(containerPath), mode)
+		} else {
+			containerPath = splited[1]
+			val = fmt.Sprintf("%s:%s", splited[0], path.Clean(containerPath))
+		}
+	case 3:
 		containerPath = splited[1]
-		val = fmt.Sprintf("%s:%s", splited[0], path.Clean(splited[1]))
+		mode = splited[2]
+		val = fmt.Sprintf("%s:%s:%s", splited[0], containerPath, mode)
 	}
 
+	// FIXME validate mode ?
 	if !path.IsAbs(containerPath) {
 		return val, fmt.Errorf("%s is not an absolute path", containerPath)
 	}
