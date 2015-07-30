@@ -75,7 +75,7 @@ The first two steps can be done as part of a Dockerfile, as follows.
 
     # install latest CFEngine
     RUN wget -qO- http://cfengine.com/pub/gpg.key | apt-key add -
-    RUN echo "deb http://cfengine.com/pub/apt $(lsb_release -cs) main" > /etc/apt/sources.list.d/cfengine-community.list
+    RUN echo "deb http://cfengine.com/pub/apt/packages stable main" > /etc/apt/sources.list.d/cfengine-community.list
     RUN apt-get update && apt-get install -y cfengine-community
 
     # install cfe-docker process management policy
