@@ -237,14 +237,11 @@ func (s *DockerSuite) TestSaveDirectoryPermissions(c *check.C) {
 	os.Mkdir(extractionDirectory, 0777)
 
 	defer os.RemoveAll(tmpDir)
-	_, err = buildImage(name,
+	buildImage(c, name,
 		`FROM busybox
 	RUN adduser -D user && mkdir -p /opt/a/b && chown -R user:user /opt/a
 	RUN touch /opt/a/b/c && chown user:user /opt/a/b/c`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 
 	if out, _, err := runCommandPipelineWithOutput(
 		exec.Command(dockerBinary, "save", name),

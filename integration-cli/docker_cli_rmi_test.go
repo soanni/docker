@@ -164,8 +164,7 @@ func (s *DockerSuite) TestRmiImgIDForce(c *check.C) {
 // See https://github.com/docker/docker/issues/14116
 func (s *DockerSuite) TestRmiImageIDForceWithRunningContainersAndMultipleTags(c *check.C) {
 	dockerfile := "FROM busybox\nRUN echo test 14116\n"
-	imgID, err := buildImage("test-14116", dockerfile, false)
-	c.Assert(err, check.IsNil)
+	imgID, _ := buildImage(c, "test-14116", dockerfile, false)
 
 	newTag := "newtag"
 	dockerCmd(c, "tag", imgID, newTag)
@@ -273,8 +272,7 @@ func (s *DockerSuite) TestRmiContainerImageNotFound(c *check.C) {
 	imageIds := make([]string, 2)
 	for i, name := range imageNames {
 		dockerfile := fmt.Sprintf("FROM busybox\nMAINTAINER %s\nRUN echo %s\n", name, name)
-		id, err := buildImage(name, dockerfile, false)
-		c.Assert(err, check.IsNil)
+		id, _ := buildImage(c, name, dockerfile, false)
 		imageIds[i] = id
 	}
 

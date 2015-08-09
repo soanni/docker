@@ -50,11 +50,7 @@ func (s *DockerSuite) TestApiImagesFilter(c *check.C) {
 
 func (s *DockerSuite) TestApiImagesSaveAndLoad(c *check.C) {
 	testRequires(c, Network)
-	out, err := buildImage("saveandload", "FROM hello-world\nENV FOO bar", false)
-	if err != nil {
-		c.Fatal(err)
-	}
-	id := strings.TrimSpace(out)
+	id, _ := buildImage(c, "saveandload", "FROM hello-world\nENV FOO bar", false)
 
 	res, body, err := sockRequestRaw("GET", "/images/"+id+"/get", nil, "")
 	c.Assert(err, check.IsNil)
@@ -79,11 +75,7 @@ func (s *DockerSuite) TestApiImagesSaveAndLoad(c *check.C) {
 func (s *DockerSuite) TestApiImagesDelete(c *check.C) {
 	testRequires(c, Network)
 	name := "test-api-images-delete"
-	out, err := buildImage(name, "FROM hello-world\nENV FOO bar", false)
-	if err != nil {
-		c.Fatal(err)
-	}
-	id := strings.TrimSpace(out)
+	id, _ := buildImage(c, name, "FROM hello-world\nENV FOO bar", false)
 
 	dockerCmd(c, "tag", name, "test:tag1")
 
@@ -103,10 +95,7 @@ func (s *DockerSuite) TestApiImagesDelete(c *check.C) {
 func (s *DockerSuite) TestApiImagesHistory(c *check.C) {
 	testRequires(c, Network)
 	name := "test-api-images-history"
-	out, err := buildImage(name, "FROM hello-world\nENV FOO bar", false)
-	c.Assert(err, check.IsNil)
-
-	id := strings.TrimSpace(out)
+	id, _ := buildImage(c, name, "FROM hello-world\nENV FOO bar", false)
 
 	status, body, err := sockRequest("GET", "/images/"+id+"/history", nil)
 	c.Assert(err, check.IsNil)

@@ -19,26 +19,17 @@ func (s *DockerSuite) TestImagesEnsureImageIsListed(c *check.C) {
 }
 
 func (s *DockerSuite) TestImagesOrderedByCreationDate(c *check.C) {
-	id1, err := buildImage("order:test_a",
+	id1, _ := buildImage(c, "order:test_a",
 		`FROM scratch
 		MAINTAINER dockerio1`, true)
-	if err != nil {
-		c.Fatal(err)
-	}
 	time.Sleep(time.Second)
-	id2, err := buildImage("order:test_c",
+	id2, _ := buildImage(c, "order:test_c",
 		`FROM scratch
 		MAINTAINER dockerio2`, true)
-	if err != nil {
-		c.Fatal(err)
-	}
 	time.Sleep(time.Second)
-	id3, err := buildImage("order:test_b",
+	id3, _ := buildImage(c, "order:test_b",
 		`FROM scratch
 		MAINTAINER dockerio3`, true)
-	if err != nil {
-		c.Fatal(err)
-	}
 
 	out, _ := dockerCmd(c, "images", "-q", "--no-trunc")
 	imgs := strings.Split(out, "\n")
@@ -64,26 +55,17 @@ func (s *DockerSuite) TestImagesFilterLabel(c *check.C) {
 	imageName1 := "images_filter_test1"
 	imageName2 := "images_filter_test2"
 	imageName3 := "images_filter_test3"
-	image1ID, err := buildImage(imageName1,
+	image1ID, _ := buildImage(c, imageName1,
 		`FROM scratch
 		 LABEL match me`, true)
-	if err != nil {
-		c.Fatal(err)
-	}
 
-	image2ID, err := buildImage(imageName2,
+	image2ID, _ := buildImage(c, imageName2,
 		`FROM scratch
 		 LABEL match="me too"`, true)
-	if err != nil {
-		c.Fatal(err)
-	}
 
-	image3ID, err := buildImage(imageName3,
+	image3ID, _ := buildImage(c, imageName3,
 		`FROM scratch
 		 LABEL nomatch me`, true)
-	if err != nil {
-		c.Fatal(err)
-	}
 
 	out, _ := dockerCmd(c, "images", "--no-trunc", "-q", "-f", "label=match")
 	out = strings.TrimSpace(out)
@@ -100,7 +82,7 @@ func (s *DockerSuite) TestImagesFilterLabel(c *check.C) {
 
 func (s *DockerSuite) TestImagesFilterSpaceTrimCase(c *check.C) {
 	imageName := "images_filter_test"
-	buildImage(imageName,
+	buildImage(c, imageName,
 		`FROM scratch
 		 RUN touch /test/foo
 		 RUN touch /test/bar

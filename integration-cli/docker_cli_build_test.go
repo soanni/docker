@@ -27,24 +27,19 @@ import (
 func (s *DockerSuite) TestBuildJSONEmptyRun(c *check.C) {
 	name := "testbuildjsonemptyrun"
 
-	_, err := buildImage(
-		name,
+	buildImage(c, name,
 		`
     FROM busybox
     RUN []
     `,
 		true)
 
-	if err != nil {
-		c.Fatal("error when dealing with a RUN statement with empty JSON array")
-	}
-
 }
 
 func (s *DockerSuite) TestBuildEmptyWhitespace(c *check.C) {
 	name := "testbuildemptywhitespace"
 
-	_, err := buildImage(
+	_, err := buildImageWithError(
 		name,
 		`
     FROM busybox
@@ -63,18 +58,13 @@ func (s *DockerSuite) TestBuildEmptyWhitespace(c *check.C) {
 func (s *DockerSuite) TestBuildShCmdJSONEntrypoint(c *check.C) {
 	name := "testbuildshcmdjsonentrypoint"
 
-	_, err := buildImage(
-		name,
+	buildImage(c, name,
 		`
     FROM busybox
     ENTRYPOINT ["/bin/echo"]
     CMD echo test
     `,
 		true)
-
-	if err != nil {
-		c.Fatal(err)
-	}
 
 	out, _ := dockerCmd(c, "run", "--rm", name)
 
@@ -87,14 +77,11 @@ func (s *DockerSuite) TestBuildShCmdJSONEntrypoint(c *check.C) {
 func (s *DockerSuite) TestBuildEnvironmentReplacementUser(c *check.C) {
 	name := "testbuildenvironmentreplacement"
 
-	_, err := buildImage(name, `
+	buildImage(c, name, `
   FROM scratch
   ENV user foo
   USER ${user}
   `, true)
-	if err != nil {
-		c.Fatal(err)
-	}
 
 	res, err := inspectFieldJSON(name, "Config.User")
 	if err != nil {
@@ -110,14 +97,11 @@ func (s *DockerSuite) TestBuildEnvironmentReplacementUser(c *check.C) {
 func (s *DockerSuite) TestBuildEnvironmentReplacementVolume(c *check.C) {
 	name := "testbuildenvironmentreplacement"
 
-	_, err := buildImage(name, `
+	buildImage(c, name, `
   FROM scratch
   ENV volume /quux
   VOLUME ${volume}
   `, true)
-	if err != nil {
-		c.Fatal(err)
-	}
 
 	res, err := inspectFieldJSON(name, "Config.Volumes")
 	if err != nil {
@@ -139,14 +123,11 @@ func (s *DockerSuite) TestBuildEnvironmentReplacementVolume(c *check.C) {
 func (s *DockerSuite) TestBuildEnvironmentReplacementExpose(c *check.C) {
 	name := "testbuildenvironmentreplacement"
 
-	_, err := buildImage(name, `
+	buildImage(c, name, `
   FROM scratch
   ENV port 80
   EXPOSE ${port}
   `, true)
-	if err != nil {
-		c.Fatal(err)
-	}
 
 	res, err := inspectFieldJSON(name, "Config.ExposedPorts")
 	if err != nil {
@@ -168,17 +149,12 @@ func (s *DockerSuite) TestBuildEnvironmentReplacementExpose(c *check.C) {
 func (s *DockerSuite) TestBuildEnvironmentReplacementWorkdir(c *check.C) {
 	name := "testbuildenvironmentreplacement"
 
-	_, err := buildImage(name, `
+	buildImage(c, name, `
   FROM busybox
   ENV MYWORKDIR /work
   RUN mkdir ${MYWORKDIR}
   WORKDIR ${MYWORKDIR}
   `, true)
-
-	if err != nil {
-		c.Fatal(err)
-	}
-
 }
 
 func (s *DockerSuite) TestBuildEnvironmentReplacementAddCopy(c *check.C) {
@@ -218,7 +194,7 @@ func (s *DockerSuite) TestBuildEnvironmentReplacementAddCopy(c *check.C) {
 func (s *DockerSuite) TestBuildEnvironmentReplacementEnv(c *check.C) {
 	name := "testbuildenvironmentreplacement"
 
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`
   FROM busybox
   ENV foo zzz
@@ -233,10 +209,6 @@ func (s *DockerSuite) TestBuildEnvironmentReplacementEnv(c *check.C) {
   ENV abc4 "\$foo"
   RUN [ "$abc4" = '$foo' ] && (echo "$abc4" | grep -q foo)
   `, true)
-
-	if err != nil {
-		c.Fatal(err)
-	}
 
 	res, err := inspectFieldJSON(name, "Config.Env")
 	if err != nil {
@@ -285,16 +257,12 @@ func (s *DockerSuite) TestBuildEnvironmentReplacementEnv(c *check.C) {
 func (s *DockerSuite) TestBuildHandleEscapes(c *check.C) {
 	name := "testbuildhandleescapes"
 
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`
   FROM scratch
   ENV FOO bar
   VOLUME ${FOO}
   `, true)
-
-	if err != nil {
-		c.Fatal(err)
-	}
 
 	var result map[string]map[string]struct{}
 
@@ -313,16 +281,12 @@ func (s *DockerSuite) TestBuildHandleEscapes(c *check.C) {
 
 	deleteImages(name)
 
-	_, err = buildImage(name,
+	buildImage(c, name,
 		`
   FROM scratch
   ENV FOO bar
   VOLUME \${FOO}
   `, true)
-
-	if err != nil {
-		c.Fatal(err)
-	}
 
 	res, err = inspectFieldJSON(name, "Config.Volumes")
 	if err != nil {
@@ -343,16 +307,12 @@ func (s *DockerSuite) TestBuildHandleEscapes(c *check.C) {
 	// Like above, the first escape is swallowed and the rest are treated as
 	// literals, this one is just less obvious because of all the character noise.
 
-	_, err = buildImage(name,
+	buildImage(c, name,
 		`
   FROM scratch
   ENV FOO bar
   VOLUME \\\\\\\${FOO}
   `, true)
-
-	if err != nil {
-		c.Fatal(err)
-	}
 
 	res, err = inspectFieldJSON(name, "Config.Volumes")
 	if err != nil {
@@ -373,23 +333,15 @@ func (s *DockerSuite) TestBuildOnBuildLowercase(c *check.C) {
 	name := "testbuildonbuildlowercase"
 	name2 := "testbuildonbuildlowercase2"
 
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`
   FROM busybox
   onbuild run echo quux
   `, true)
 
-	if err != nil {
-		c.Fatal(err)
-	}
-
-	_, out, err := buildImageWithOut(name2, fmt.Sprintf(`
+	_, out := buildImage(c, name2, fmt.Sprintf(`
   FROM %s
   `, name), true)
-
-	if err != nil {
-		c.Fatal(err)
-	}
 
 	if !strings.Contains(out, "quux") {
 		c.Fatalf("Did not receive the expected echo text, got %s", out)
@@ -403,17 +355,13 @@ func (s *DockerSuite) TestBuildOnBuildLowercase(c *check.C) {
 
 func (s *DockerSuite) TestBuildEnvEscapes(c *check.C) {
 	name := "testbuildenvescapes"
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`
     FROM busybox
     ENV TEST foo
     CMD echo \$
     `,
 		true)
-
-	if err != nil {
-		c.Fatal(err)
-	}
 
 	out, _ := dockerCmd(c, "run", "-t", name)
 
@@ -426,17 +374,13 @@ func (s *DockerSuite) TestBuildEnvEscapes(c *check.C) {
 func (s *DockerSuite) TestBuildEnvOverwrite(c *check.C) {
 	name := "testbuildenvoverwrite"
 
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`
     FROM busybox
     ENV TEST foo
     CMD echo ${TEST}
     `,
 		true)
-
-	if err != nil {
-		c.Fatal(err)
-	}
 
 	out, _ := dockerCmd(c, "run", "-e", "TEST=bar", "-t", name)
 
@@ -455,7 +399,7 @@ func (s *DockerSuite) TestBuildOnBuildForbiddenMaintainerInSourceImage(c *check.
 
 	dockerCmd(c, "commit", "--run", "{\"OnBuild\":[\"MAINTAINER docker.io\"]}", cleanedContainerID, "onbuild")
 
-	_, err := buildImage(name,
+	_, err := buildImageWithError(name,
 		`FROM onbuild`,
 		true)
 	if err != nil {
@@ -477,7 +421,7 @@ func (s *DockerSuite) TestBuildOnBuildForbiddenFromInSourceImage(c *check.C) {
 
 	dockerCmd(c, "commit", "--run", "{\"OnBuild\":[\"FROM busybox\"]}", cleanedContainerID, "onbuild")
 
-	_, err := buildImage(name,
+	_, err := buildImageWithError(name,
 		`FROM onbuild`,
 		true)
 	if err != nil {
@@ -499,7 +443,7 @@ func (s *DockerSuite) TestBuildOnBuildForbiddenChainedInSourceImage(c *check.C) 
 
 	dockerCmd(c, "commit", "--run", "{\"OnBuild\":[\"ONBUILD RUN ls\"]}", cleanedContainerID, "onbuild")
 
-	_, err := buildImage(name,
+	_, err := buildImageWithError(name,
 		`FROM onbuild`,
 		true)
 	if err != nil {
@@ -516,22 +460,14 @@ func (s *DockerSuite) TestBuildOnBuildCmdEntrypointJSON(c *check.C) {
 	name1 := "onbuildcmd"
 	name2 := "onbuildgenerated"
 
-	_, err := buildImage(name1, `
+	buildImage(c, name1, `
 FROM busybox
 ONBUILD CMD ["hello world"]
 ONBUILD ENTRYPOINT ["echo"]
 ONBUILD RUN ["true"]`,
 		false)
 
-	if err != nil {
-		c.Fatal(err)
-	}
-
-	_, err = buildImage(name2, fmt.Sprintf(`FROM %s`, name1), false)
-
-	if err != nil {
-		c.Fatal(err)
-	}
+	buildImage(c, name2, fmt.Sprintf(`FROM %s`, name1), false)
 
 	out, _ := dockerCmd(c, "run", "-t", name2)
 
@@ -545,20 +481,12 @@ func (s *DockerSuite) TestBuildOnBuildEntrypointJSON(c *check.C) {
 	name1 := "onbuildcmd"
 	name2 := "onbuildgenerated"
 
-	_, err := buildImage(name1, `
+	buildImage(c, name1, `
 FROM busybox
 ONBUILD ENTRYPOINT ["echo"]`,
 		false)
 
-	if err != nil {
-		c.Fatal(err)
-	}
-
-	_, err = buildImage(name2, fmt.Sprintf("FROM %s\nCMD [\"hello world\"]\n", name1), false)
-
-	if err != nil {
-		c.Fatal(err)
-	}
+	buildImage(c, name2, fmt.Sprintf("FROM %s\nCMD [\"hello world\"]\n", name1), false)
 
 	out, _ := dockerCmd(c, "run", "-t", name2)
 
@@ -579,23 +507,17 @@ func (s *DockerSuite) TestBuildCacheAdd(c *check.C) {
 	}
 	defer server.Close()
 
-	if _, err := buildImage(name,
+	buildImage(c, name,
 		fmt.Sprintf(`FROM scratch
 		ADD %s/robots.txt /`, server.URL()),
-		true); err != nil {
-		c.Fatal(err)
-	}
-	if err != nil {
-		c.Fatal(err)
-	}
+		true)
+
 	deleteImages(name)
-	_, out, err := buildImageWithOut(name,
+
+	_, out := buildImage(c, name,
 		fmt.Sprintf(`FROM scratch
 		ADD %s/index.html /`, server.URL()),
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 	if strings.Contains(out, "Using cache") {
 		c.Fatal("2nd build used cache on ADD, it shouldn't")
 	}
@@ -621,9 +543,7 @@ RUN ls -le /file`
 
 	dockerfile := fmt.Sprintf(dFmt, server.URL())
 
-	if _, out, err = buildImageWithOut(name, dockerfile, false); err != nil {
-		c.Fatal(err)
-	}
+	_, out = buildImage(c, name, dockerfile, false)
 
 	originMTime := regexp.MustCompile(`root.*/file.*\n`).FindString(out)
 	// Make sure our regexp is correct
@@ -635,9 +555,7 @@ RUN ls -le /file`
 	// Wait a few seconds to make sure the time changed enough to notice
 	time.Sleep(2 * time.Second)
 
-	if _, out2, err = buildImageWithOut(name, dockerfile, false); err != nil {
-		c.Fatal(err)
-	}
+	_, out2 = buildImage(c, name, dockerfile, false)
 
 	newMTime := regexp.MustCompile(`root.*/file.*\n`).FindString(out2)
 	if newMTime != originMTime {
@@ -656,9 +574,7 @@ RUN ls -le /file`
 
 	dockerfile = fmt.Sprintf(dFmt, server.URL())
 
-	if _, out2, err = buildImageWithOut(name, dockerfile, false); err != nil {
-		c.Fatal(err)
-	}
+	_, out2 = buildImage(c, name, dockerfile, false)
 
 	newMTime = regexp.MustCompile(`root.*/file.*\n`).FindString(out2)
 	if newMTime == originMTime {
@@ -1501,11 +1417,11 @@ COPY . /`,
 
 func (s *DockerSuite) TestBuildCopyDisallowRemote(c *check.C) {
 	name := "testcopydisallowremote"
-	_, out, err := buildImageWithOut(name, `FROM scratch
+	stderr, err := buildImageWithError(name, `FROM scratch
 COPY https://index.docker.io/robots.txt /`,
 		true)
-	if err == nil || !strings.Contains(out, "Source can't be a URL for COPY") {
-		c.Fatalf("Error should be about disallowed remote source, got err: %s, out: %q", err, out)
+	if err == nil || !strings.Contains(stderr, "Source can't be a URL for COPY") {
+		c.Fatalf("Error should be about disallowed remote source, got err: %s, out: %q", err, stderr)
 	}
 }
 
@@ -2000,7 +1916,7 @@ func (s *DockerSuite) TestBuildWithVolumes(c *check.C) {
 			"/test8]": emptyMap,
 		}
 	)
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM scratch
 		VOLUME /test1
 		VOLUME /test2
@@ -2009,9 +1925,6 @@ func (s *DockerSuite) TestBuildWithVolumes(c *check.C) {
     VOLUME [/test7 /test8]
     `,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 	res, err := inspectFieldJSON(name, "Config.Volumes")
 	if err != nil {
 		c.Fatal(err)
@@ -2033,13 +1946,10 @@ func (s *DockerSuite) TestBuildWithVolumes(c *check.C) {
 func (s *DockerSuite) TestBuildMaintainer(c *check.C) {
 	name := "testbuildmaintainer"
 	expected := "dockerio"
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM scratch
         MAINTAINER dockerio`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 	res, err := inspectField(name, "Author")
 	if err != nil {
 		c.Fatal(err)
@@ -2052,15 +1962,12 @@ func (s *DockerSuite) TestBuildMaintainer(c *check.C) {
 func (s *DockerSuite) TestBuildUser(c *check.C) {
 	name := "testbuilduser"
 	expected := "dockerio"
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM busybox
 		RUN echo 'dockerio:x:1001:1001::/bin:/bin/false' >> /etc/passwd
 		USER dockerio
 		RUN [ $(whoami) = 'dockerio' ]`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 	res, err := inspectField(name, "Config.User")
 	if err != nil {
 		c.Fatal(err)
@@ -2073,7 +1980,7 @@ func (s *DockerSuite) TestBuildUser(c *check.C) {
 func (s *DockerSuite) TestBuildRelativeWorkdir(c *check.C) {
 	name := "testbuildrelativeworkdir"
 	expected := "/test2/test3"
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM busybox
 		RUN [ "$PWD" = '/' ]
 		WORKDIR test1
@@ -2083,9 +1990,6 @@ func (s *DockerSuite) TestBuildRelativeWorkdir(c *check.C) {
 		WORKDIR test3
 		RUN [ "$PWD" = '/test2/test3' ]`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 	res, err := inspectField(name, "Config.WorkingDir")
 	if err != nil {
 		c.Fatal(err)
@@ -2098,16 +2002,13 @@ func (s *DockerSuite) TestBuildRelativeWorkdir(c *check.C) {
 func (s *DockerSuite) TestBuildWorkdirWithEnvVariables(c *check.C) {
 	name := "testbuildworkdirwithenvvariables"
 	expected := "/test1/test2"
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM busybox
 		ENV DIRPATH /test1
 		ENV SUBDIRNAME test2
 		WORKDIR $DIRPATH
 		WORKDIR $SUBDIRNAME/$MISSING_VAR`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 	res, err := inspectField(name, "Config.WorkingDir")
 	if err != nil {
 		c.Fatal(err)
@@ -2158,15 +2059,12 @@ func (s *DockerSuite) TestBuildRelativeCopy(c *check.C) {
 func (s *DockerSuite) TestBuildEnv(c *check.C) {
 	name := "testbuildenv"
 	expected := "[PATH=/test:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin PORT=2375]"
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM busybox
 		ENV PATH /test:$PATH
         ENV PORT 2375
 		RUN [ $(env | grep PORT) = 'PORT=2375' ]`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 	res, err := inspectField(name, "Config.Env")
 	if err != nil {
 		c.Fatal(err)
@@ -2184,13 +2082,10 @@ func (s *DockerSuite) TestBuildContextCleanup(c *check.C) {
 	if err != nil {
 		c.Fatalf("failed to list contents of tmp dir: %s", err)
 	}
-	_, err = buildImage(name,
+	buildImage(c, name,
 		`FROM scratch
         ENTRYPOINT ["/bin/echo"]`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 	entriesFinal, err := ioutil.ReadDir("/var/lib/docker/tmp")
 	if err != nil {
 		c.Fatalf("failed to list contents of tmp dir: %s", err)
@@ -2209,11 +2104,10 @@ func (s *DockerSuite) TestBuildContextCleanupFailedBuild(c *check.C) {
 	if err != nil {
 		c.Fatalf("failed to list contents of tmp dir: %s", err)
 	}
-	_, err = buildImage(name,
+	if _, err := buildImageWithError(name,
 		`FROM scratch
 	RUN /non/existing/command`,
-		true)
-	if err == nil {
+		true); err == nil {
 		c.Fatalf("expected build to fail, but it didn't")
 	}
 	entriesFinal, err := ioutil.ReadDir("/var/lib/docker/tmp")
@@ -2229,13 +2123,10 @@ func (s *DockerSuite) TestBuildContextCleanupFailedBuild(c *check.C) {
 func (s *DockerSuite) TestBuildCmd(c *check.C) {
 	name := "testbuildcmd"
 	expected := "{[/bin/echo Hello World]}"
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM scratch
         CMD ["/bin/echo", "Hello World"]`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 	res, err := inspectField(name, "Config.Cmd")
 	if err != nil {
 		c.Fatal(err)
@@ -2248,13 +2139,10 @@ func (s *DockerSuite) TestBuildCmd(c *check.C) {
 func (s *DockerSuite) TestBuildExpose(c *check.C) {
 	name := "testbuildexpose"
 	expected := "map[2375/tcp:{}]"
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM scratch
         EXPOSE 2375`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 	res, err := inspectField(name, "Config.ExposedPorts")
 	if err != nil {
 		c.Fatal(err)
@@ -2290,10 +2178,7 @@ func (s *DockerSuite) TestBuildExposeMorePorts(c *check.C) {
 	tmpl.Execute(buf, portList)
 
 	name := "testbuildexpose"
-	_, err := buildImage(name, buf.String(), true)
-	if err != nil {
-		c.Fatal(err)
-	}
+	buildImage(c, name, buf.String(), true)
 
 	// check if all the ports are saved inside Config.ExposedPorts
 	res, err := inspectFieldJSON(name, "Config.ExposedPorts")
@@ -2320,11 +2205,8 @@ func (s *DockerSuite) TestBuildExposeMorePorts(c *check.C) {
 
 func (s *DockerSuite) TestBuildExposeOrder(c *check.C) {
 	buildID := func(name, exposed string) string {
-		_, err := buildImage(name, fmt.Sprintf(`FROM scratch
+		buildImage(c, name, fmt.Sprintf(`FROM scratch
 		EXPOSE %s`, exposed), true)
-		if err != nil {
-			c.Fatal(err)
-		}
 		id, err := inspectField(name, "Id")
 		if err != nil {
 			c.Fatal(err)
@@ -2342,13 +2224,10 @@ func (s *DockerSuite) TestBuildExposeOrder(c *check.C) {
 func (s *DockerSuite) TestBuildExposeUpperCaseProto(c *check.C) {
 	name := "testbuildexposeuppercaseproto"
 	expected := "map[5678/udp:{}]"
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM scratch
         EXPOSE 5678/UDP`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 	res, err := inspectField(name, "Config.ExposedPorts")
 	if err != nil {
 		c.Fatal(err)
@@ -2362,13 +2241,10 @@ func (s *DockerSuite) TestBuildEmptyEntrypointInheritance(c *check.C) {
 	name := "testbuildentrypointinheritance"
 	name2 := "testbuildentrypointinheritance2"
 
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM busybox
         ENTRYPOINT ["/bin/echo"]`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 	res, err := inspectField(name, "Config.Entrypoint")
 	if err != nil {
 		c.Fatal(err)
@@ -2379,13 +2255,10 @@ func (s *DockerSuite) TestBuildEmptyEntrypointInheritance(c *check.C) {
 		c.Fatalf("Entrypoint %s, expected %s", res, expected)
 	}
 
-	_, err = buildImage(name2,
+	buildImage(c, name2,
 		fmt.Sprintf(`FROM %s
         ENTRYPOINT []`, name),
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 	res, err = inspectField(name2, "Config.Entrypoint")
 	if err != nil {
 		c.Fatal(err)
@@ -2403,13 +2276,10 @@ func (s *DockerSuite) TestBuildEmptyEntrypoint(c *check.C) {
 	name := "testbuildentrypoint"
 	expected := "{[]}"
 
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM busybox
         ENTRYPOINT []`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 	res, err := inspectField(name, "Config.Entrypoint")
 	if err != nil {
 		c.Fatal(err)
@@ -2423,13 +2293,10 @@ func (s *DockerSuite) TestBuildEmptyEntrypoint(c *check.C) {
 func (s *DockerSuite) TestBuildEntrypoint(c *check.C) {
 	name := "testbuildentrypoint"
 	expected := "{[/bin/echo]}"
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM scratch
         ENTRYPOINT ["/bin/echo"]`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 	res, err := inspectField(name, "Config.Entrypoint")
 	if err != nil {
 		c.Fatal(err)
@@ -2511,24 +2378,18 @@ func (s *DockerSuite) TestBuildOnBuildLimitedInheritence(c *check.C) {
 
 func (s *DockerSuite) TestBuildWithCache(c *check.C) {
 	name := "testbuildwithcache"
-	id1, err := buildImage(name,
+	id1, _ := buildImage(c, name,
 		`FROM scratch
 		MAINTAINER dockerio
 		EXPOSE 5432
         ENTRYPOINT ["/bin/echo"]`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
-	id2, err := buildImage(name,
+	id2, _ := buildImage(c, name,
 		`FROM scratch
 		MAINTAINER dockerio
 		EXPOSE 5432
         ENTRYPOINT ["/bin/echo"]`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 	if id1 != id2 {
 		c.Fatal("The cache should have been used but hasn't.")
 	}
@@ -2537,25 +2398,19 @@ func (s *DockerSuite) TestBuildWithCache(c *check.C) {
 func (s *DockerSuite) TestBuildWithoutCache(c *check.C) {
 	name := "testbuildwithoutcache"
 	name2 := "testbuildwithoutcache2"
-	id1, err := buildImage(name,
+	id1, _ := buildImage(c, name,
 		`FROM scratch
 		MAINTAINER dockerio
 		EXPOSE 5432
         ENTRYPOINT ["/bin/echo"]`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 
-	id2, err := buildImage(name2,
+	id2, _ := buildImage(c, name2,
 		`FROM scratch
 		MAINTAINER dockerio
 		EXPOSE 5432
         ENTRYPOINT ["/bin/echo"]`,
 		false)
-	if err != nil {
-		c.Fatal(err)
-	}
 	if id1 == id2 {
 		c.Fatal("The cache should have been invalided but hasn't.")
 	}
@@ -2809,22 +2664,16 @@ func (s *DockerSuite) TestBuildAddRemoteFileWithCache(c *check.C) {
 	}
 	defer server.Close()
 
-	id1, err := buildImage(name,
+	id1, _ := buildImage(c, name,
 		fmt.Sprintf(`FROM scratch
         MAINTAINER dockerio
         ADD %s/baz /usr/lib/baz/quux`, server.URL()),
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
-	id2, err := buildImage(name,
+	id2, _ := buildImage(c, name,
 		fmt.Sprintf(`FROM scratch
         MAINTAINER dockerio
         ADD %s/baz /usr/lib/baz/quux`, server.URL()),
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 	if id1 != id2 {
 		c.Fatal("The cache should have been used but hasn't.")
 	}
@@ -2841,22 +2690,16 @@ func (s *DockerSuite) TestBuildAddRemoteFileWithoutCache(c *check.C) {
 	}
 	defer server.Close()
 
-	id1, err := buildImage(name,
+	id1, _ := buildImage(c, name,
 		fmt.Sprintf(`FROM scratch
         MAINTAINER dockerio
         ADD %s/baz /usr/lib/baz/quux`, server.URL()),
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
-	id2, err := buildImage(name2,
+	id2, _ := buildImage(c, name2,
 		fmt.Sprintf(`FROM scratch
         MAINTAINER dockerio
         ADD %s/baz /usr/lib/baz/quux`, server.URL()),
 		false)
-	if err != nil {
-		c.Fatal(err)
-	}
 	if id1 == id2 {
 		c.Fatal("The cache should have been invalided but hasn't.")
 	}
@@ -3043,15 +2886,11 @@ func (s *DockerSuite) TestBuildAddLocalAndRemoteFilesWithoutCache(c *check.C) {
 func (s *DockerSuite) TestBuildWithVolumeOwnership(c *check.C) {
 	name := "testbuildimg"
 
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM busybox:latest
         RUN mkdir /test && chown daemon:daemon /test && chmod 0600 /test
         VOLUME /test`,
 		true)
-
-	if err != nil {
-		c.Fatal(err)
-	}
 
 	out, _ := dockerCmd(c, "run", "--rm", "testbuildimg", "ls", "-la", "/test")
 
@@ -3069,12 +2908,10 @@ func (s *DockerSuite) TestBuildWithVolumeOwnership(c *check.C) {
 // utilizing cache
 func (s *DockerSuite) TestBuildEntrypointRunCleanup(c *check.C) {
 	name := "testbuildcmdcleanup"
-	if _, err := buildImage(name,
+	buildImage(c, name,
 		`FROM busybox
         RUN echo "hello"`,
-		true); err != nil {
-		c.Fatal(err)
-	}
+		true)
 
 	ctx, err := fakeContext(`FROM busybox
         RUN echo "hello"
@@ -3142,25 +2979,19 @@ func (s *DockerSuite) TestBuildAddFileNotFound(c *check.C) {
 func (s *DockerSuite) TestBuildInheritance(c *check.C) {
 	name := "testbuildinheritance"
 
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM scratch
 		EXPOSE 2375`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 	ports1, err := inspectField(name, "Config.ExposedPorts")
 	if err != nil {
 		c.Fatal(err)
 	}
 
-	_, err = buildImage(name,
+	buildImage(c, name,
 		fmt.Sprintf(`FROM %s
 		ENTRYPOINT ["/bin/echo"]`, name),
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 
 	res, err := inspectField(name, "Config.Entrypoint")
 	if err != nil {
@@ -3180,7 +3011,7 @@ func (s *DockerSuite) TestBuildInheritance(c *check.C) {
 
 func (s *DockerSuite) TestBuildFails(c *check.C) {
 	name := "testbuildfails"
-	_, err := buildImage(name,
+	_, err := buildImageWithError(name,
 		`FROM busybox
 		RUN sh -c "exit 23"`,
 		true)
@@ -3195,7 +3026,7 @@ func (s *DockerSuite) TestBuildFails(c *check.C) {
 
 func (s *DockerSuite) TestBuildFailsDockerfileEmpty(c *check.C) {
 	name := "testbuildfails"
-	_, err := buildImage(name, ``, true)
+	_, err := buildImageWithError(name, ``, true)
 	if err != nil {
 		if !strings.Contains(err.Error(), "The Dockerfile (Dockerfile) cannot be empty") {
 			c.Fatalf("Wrong error %v, must be about empty Dockerfile", err)
@@ -3207,25 +3038,21 @@ func (s *DockerSuite) TestBuildFailsDockerfileEmpty(c *check.C) {
 
 func (s *DockerSuite) TestBuildOnBuild(c *check.C) {
 	name := "testbuildonbuild"
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM busybox
 		ONBUILD RUN touch foobar`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
-	_, err = buildImage(name,
+	// Build will fail if foobar is not present in child
+	// Should be created by the ONBUILD command
+	buildImage(c, name,
 		fmt.Sprintf(`FROM %s
 		RUN [ -f foobar ]`, name),
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 }
 
 func (s *DockerSuite) TestBuildOnBuildForbiddenChained(c *check.C) {
 	name := "testbuildonbuildforbiddenchained"
-	_, err := buildImage(name,
+	_, err := buildImageWithError(name,
 		`FROM busybox
 		ONBUILD ONBUILD RUN touch foobar`,
 		true)
@@ -3240,7 +3067,7 @@ func (s *DockerSuite) TestBuildOnBuildForbiddenChained(c *check.C) {
 
 func (s *DockerSuite) TestBuildOnBuildForbiddenFrom(c *check.C) {
 	name := "testbuildonbuildforbiddenfrom"
-	_, err := buildImage(name,
+	_, err := buildImageWithError(name,
 		`FROM busybox
 		ONBUILD FROM scratch`,
 		true)
@@ -3255,7 +3082,7 @@ func (s *DockerSuite) TestBuildOnBuildForbiddenFrom(c *check.C) {
 
 func (s *DockerSuite) TestBuildOnBuildForbiddenMaintainer(c *check.C) {
 	name := "testbuildonbuildforbiddenmaintainer"
-	_, err := buildImage(name,
+	_, err := buildImageWithError(name,
 		`FROM busybox
 		ONBUILD MAINTAINER docker.io`,
 		true)
@@ -3292,15 +3119,12 @@ func (s *DockerSuite) TestBuildAddToSymlinkDest(c *check.C) {
 func (s *DockerSuite) TestBuildEscapeWhitespace(c *check.C) {
 	name := "testbuildescaping"
 
-	_, err := buildImage(name, `
+	buildImage(c, name, `
   FROM busybox
   MAINTAINER "Docker \
 IO <io@\
 docker.com>"
   `, true)
-	if err != nil {
-		c.Fatal(err)
-	}
 
 	res, err := inspectField(name, "Author")
 
@@ -3318,14 +3142,10 @@ func (s *DockerSuite) TestBuildVerifyIntString(c *check.C) {
 	// Verify that strings that look like ints are still passed as strings
 	name := "testbuildstringing"
 
-	_, err := buildImage(name, `
+	buildImage(c, name, `
   FROM busybox
   MAINTAINER 123
   `, true)
-
-	if err != nil {
-		c.Fatal(err)
-	}
 
 	out, _ := dockerCmd(c, "inspect", name)
 
@@ -3633,7 +3453,7 @@ func (s *DockerSuite) TestBuildDockerignoringBadExclusion(c *check.C) {
 
 func (s *DockerSuite) TestBuildLineBreak(c *check.C) {
 	name := "testbuildlinebreak"
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM  busybox
 RUN    sh -c 'echo root:testpass \
 	> /tmp/passwd'
@@ -3641,14 +3461,11 @@ RUN    mkdir -p /var/run/sshd
 RUN    [ "$(cat /tmp/passwd)" = "root:testpass" ]
 RUN    [ "$(ls -d /var/run/sshd)" = "/var/run/sshd" ]`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 }
 
 func (s *DockerSuite) TestBuildEOLInLine(c *check.C) {
 	name := "testbuildeolinline"
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM   busybox
 RUN    sh -c 'echo root:testpass > /tmp/passwd'
 RUN    echo "foo \n bar"; echo "baz"
@@ -3656,14 +3473,11 @@ RUN    mkdir -p /var/run/sshd
 RUN    [ "$(cat /tmp/passwd)" = "root:testpass" ]
 RUN    [ "$(ls -d /var/run/sshd)" = "/var/run/sshd" ]`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 }
 
 func (s *DockerSuite) TestBuildCommentsShebangs(c *check.C) {
 	name := "testbuildcomments"
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM busybox
 # This is an ordinary comment.
 RUN { echo '#!/bin/sh'; echo 'echo hello world'; } > /hello.sh
@@ -3674,14 +3488,11 @@ RUN [ -x /hello.sh ]
 RUN [ "$(cat /hello.sh)" = $'#!/bin/sh\necho hello world' ]
 RUN [ "$(/hello.sh)" = "hello world" ]`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 }
 
 func (s *DockerSuite) TestBuildUsersAndGroups(c *check.C) {
 	name := "testbuildusers"
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM busybox
 
 # Make sure our defaults work
@@ -3736,9 +3547,6 @@ RUN [ "$(id -u):$(id -g)/$(id -un):$(id -gn)/$(id -G):$(id -Gn)" = '1001:1002/do
 USER 1042:1043
 RUN [ "$(id -u):$(id -g)/$(id -un):$(id -gn)/$(id -G):$(id -Gn)" = '1042:1043/1042:1043/1043:1043' ]`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 }
 
 func (s *DockerSuite) TestBuildEnvUsage(c *check.C) {
@@ -4181,19 +3989,16 @@ func (s *DockerSuite) TestBuildFromRemoteTarball(c *check.C) {
 
 func (s *DockerSuite) TestBuildCleanupCmdOnEntrypoint(c *check.C) {
 	name := "testbuildcmdcleanuponentrypoint"
-	if _, err := buildImage(name,
+	buildImage(c, name,
 		`FROM scratch
         CMD ["test"]
 		ENTRYPOINT ["echo"]`,
-		true); err != nil {
-		c.Fatal(err)
-	}
-	if _, err := buildImage(name,
+		true)
+	buildImage(c, name,
 		fmt.Sprintf(`FROM %s
 		ENTRYPOINT ["cat"]`, name),
-		true); err != nil {
-		c.Fatal(err)
-	}
+		true)
+
 	res, err := inspectField(name, "Config.Cmd")
 	if err != nil {
 		c.Fatal(err)
@@ -4213,14 +4018,11 @@ func (s *DockerSuite) TestBuildCleanupCmdOnEntrypoint(c *check.C) {
 
 func (s *DockerSuite) TestBuildClearCmd(c *check.C) {
 	name := "testbuildclearcmd"
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`From scratch
    ENTRYPOINT ["/bin/bash"]
    CMD []`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 	res, err := inspectFieldJSON(name, "Config.Cmd")
 	if err != nil {
 		c.Fatal(err)
@@ -4232,9 +4034,7 @@ func (s *DockerSuite) TestBuildClearCmd(c *check.C) {
 
 func (s *DockerSuite) TestBuildEmptyCmd(c *check.C) {
 	name := "testbuildemptycmd"
-	if _, err := buildImage(name, "FROM scratch\nMAINTAINER quux\n", true); err != nil {
-		c.Fatal(err)
-	}
+	buildImage(c, name, "FROM scratch\nMAINTAINER quux\n", true)
 	res, err := inspectFieldJSON(name, "Config.Cmd")
 	if err != nil {
 		c.Fatal(err)
@@ -4246,14 +4046,9 @@ func (s *DockerSuite) TestBuildEmptyCmd(c *check.C) {
 
 func (s *DockerSuite) TestBuildOnBuildOutput(c *check.C) {
 	name := "testbuildonbuildparent"
-	if _, err := buildImage(name, "FROM busybox\nONBUILD RUN echo foo\n", true); err != nil {
-		c.Fatal(err)
-	}
+	buildImage(c, name, "FROM busybox\nONBUILD RUN echo foo\n", true)
 
-	_, out, err := buildImageWithOut(name, "FROM "+name+"\nMAINTAINER quux\n", true)
-	if err != nil {
-		c.Fatal(err)
-	}
+	_, out := buildImage(c, name, "FROM "+name+"\nMAINTAINER quux\n", true)
 
 	if !strings.Contains(out, "Trigger 0, RUN echo foo") {
 		c.Fatal("failed to find the ONBUILD output", out)
@@ -4263,19 +4058,17 @@ func (s *DockerSuite) TestBuildOnBuildOutput(c *check.C) {
 
 func (s *DockerSuite) TestBuildInvalidTag(c *check.C) {
 	name := "abcd:" + stringutils.GenerateRandomAlphaOnlyString(200)
-	_, out, err := buildImageWithOut(name, "FROM scratch\nMAINTAINER quux\n", true)
+	stderr, err := buildImageWithError(name, "FROM scratch\nMAINTAINER quux\n", true)
 	// if the error doesnt check for illegal tag name, or the image is built
 	// then this should fail
-	if !strings.Contains(out, "Illegal tag name") || strings.Contains(out, "Sending build context to Docker daemon") {
-		c.Fatalf("failed to stop before building. Error: %s, Output: %s", err, out)
+	if err == nil || !strings.Contains(stderr, "Illegal tag name") {
+		c.Fatalf("failed to stop before building. Error: %s, Output: %s", err, stderr)
 	}
 }
 
 func (s *DockerSuite) TestBuildCmdShDashC(c *check.C) {
 	name := "testbuildcmdshc"
-	if _, err := buildImage(name, "FROM busybox\nCMD echo cmd\n", true); err != nil {
-		c.Fatal(err)
-	}
+	buildImage(c, name, "FROM busybox\nCMD echo cmd\n", true)
 
 	res, err := inspectFieldJSON(name, "Config.Cmd")
 	if err != nil {
@@ -4297,28 +4090,19 @@ func (s *DockerSuite) TestBuildCmdSpaces(c *check.C) {
 	name := "testbuildcmdspaces"
 	var id1 string
 	var id2 string
-	var err error
 
-	if id1, err = buildImage(name, "FROM busybox\nCMD [\"echo hi\"]\n", true); err != nil {
-		c.Fatal(err)
-	}
+	id1, _ = buildImage(c, name, "FROM busybox\nCMD [\"echo hi\"]\n", true)
 
-	if id2, err = buildImage(name, "FROM busybox\nCMD [\"echo\", \"hi\"]\n", true); err != nil {
-		c.Fatal(err)
-	}
+	id2, _ = buildImage(c, name, "FROM busybox\nCMD [\"echo\", \"hi\"]\n", true)
 
 	if id1 == id2 {
 		c.Fatal("Should not have resulted in the same CMD")
 	}
 
 	// Now do the same with ENTRYPOINT
-	if id1, err = buildImage(name, "FROM busybox\nENTRYPOINT [\"echo hi\"]\n", true); err != nil {
-		c.Fatal(err)
-	}
+	id1, _ = buildImage(c, name, "FROM busybox\nENTRYPOINT [\"echo hi\"]\n", true)
 
-	if id2, err = buildImage(name, "FROM busybox\nENTRYPOINT [\"echo\", \"hi\"]\n", true); err != nil {
-		c.Fatal(err)
-	}
+	id2, _ = buildImage(c, name, "FROM busybox\nENTRYPOINT [\"echo\", \"hi\"]\n", true)
 
 	if id1 == id2 {
 		c.Fatal("Should not have resulted in the same ENTRYPOINT")
@@ -4328,9 +4112,7 @@ func (s *DockerSuite) TestBuildCmdSpaces(c *check.C) {
 
 func (s *DockerSuite) TestBuildCmdJSONNoShDashC(c *check.C) {
 	name := "testbuildcmdjson"
-	if _, err := buildImage(name, "FROM busybox\nCMD [\"echo\", \"cmd\"]", true); err != nil {
-		c.Fatal(err)
-	}
+	buildImage(c, name, "FROM busybox\nCMD [\"echo\", \"cmd\"]", true)
 
 	res, err := inspectFieldJSON(name, "Config.Cmd")
 	if err != nil {
@@ -4348,32 +4130,28 @@ func (s *DockerSuite) TestBuildCmdJSONNoShDashC(c *check.C) {
 func (s *DockerSuite) TestBuildErrorInvalidInstruction(c *check.C) {
 	name := "testbuildignoreinvalidinstruction"
 
-	out, _, err := buildImageWithOut(name, "FROM busybox\nfoo bar", true)
+	_, err := buildImageWithError(name, "FROM busybox\nfoo bar", true)
 	if err == nil {
-		c.Fatalf("Should have failed: %s", out)
+		c.Fatalf("Should have failed: %s", name)
 	}
 
 }
 
 func (s *DockerSuite) TestBuildEntrypointInheritance(c *check.C) {
 
-	if _, err := buildImage("parent", `
+	buildImage(c, "parent", `
     FROM busybox
     ENTRYPOINT exit 130
-    `, true); err != nil {
-		c.Fatal(err)
-	}
+    `, true)
 
 	if _, status, _ := dockerCmdWithError("run", "parent"); status != 130 {
 		c.Fatalf("expected exit code 130 but received %d", status)
 	}
 
-	if _, err := buildImage("child", `
+	buildImage(c, "child", `
     FROM parent
     ENTRYPOINT exit 5
-    `, true); err != nil {
-		c.Fatal(err)
-	}
+    `, true)
 
 	if _, status, _ := dockerCmdWithError("run", "child"); status != 5 {
 		c.Fatalf("expected exit code 5 but received %d", status)
@@ -4388,13 +4166,9 @@ func (s *DockerSuite) TestBuildEntrypointInheritanceInspect(c *check.C) {
 		expected = `["/bin/sh","-c","echo quux"]`
 	)
 
-	if _, err := buildImage(name, "FROM busybox\nENTRYPOINT /foo/bar", true); err != nil {
-		c.Fatal(err)
-	}
+	buildImage(c, name, "FROM busybox\nENTRYPOINT /foo/bar", true)
 
-	if _, err := buildImage(name2, fmt.Sprintf("FROM %s\nENTRYPOINT echo quux", name), true); err != nil {
-		c.Fatal(err)
-	}
+	buildImage(c, name2, fmt.Sprintf("FROM %s\nENTRYPOINT echo quux", name), true)
 
 	res, err := inspectFieldJSON(name2, "Config.Entrypoint")
 	if err != nil {
@@ -4417,13 +4191,10 @@ func (s *DockerSuite) TestBuildEntrypointInheritanceInspect(c *check.C) {
 
 func (s *DockerSuite) TestBuildRunShEntrypoint(c *check.C) {
 	name := "testbuildentrypoint"
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM busybox
                                 ENTRYPOINT /bin/echo`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 
 	dockerCmd(c, "run", "--rm", name)
 }
@@ -4431,7 +4202,7 @@ func (s *DockerSuite) TestBuildRunShEntrypoint(c *check.C) {
 func (s *DockerSuite) TestBuildExoticShellInterpolation(c *check.C) {
 	name := "testbuildexoticshellinterpolation"
 
-	_, err := buildImage(name, `
+	buildImage(c, name, `
 		FROM busybox
 
 		ENV SOME_VAR a.b.c
@@ -4450,9 +4221,6 @@ func (s *DockerSuite) TestBuildExoticShellInterpolation(c *check.C) {
 		RUN [ "${SOME_UNSET_VAR:+${SOME_VAR}}" = '' ]
 		RUN [ "${SOME_UNSET_VAR:-${SOME_VAR:-d.e.f}}" = 'a.b.c' ]
 	`, false)
-	if err != nil {
-		c.Fatal(err)
-	}
 
 }
 
@@ -4464,12 +4232,10 @@ func (s *DockerSuite) TestBuildVerifySingleQuoteFails(c *check.C) {
 	// it should barf on it.
 	name := "testbuildsinglequotefails"
 
-	if _, err := buildImage(name,
+	buildImage(c, name,
 		`FROM busybox
 		CMD [ '/bin/sh', '-c', 'echo hi' ]`,
-		true); err != nil {
-		c.Fatal(err)
-	}
+		true)
 
 	if _, _, err := dockerCmdWithError("run", "--rm", name); err == nil {
 		c.Fatal("The image was not supposed to be able to run")
@@ -4480,14 +4246,10 @@ func (s *DockerSuite) TestBuildVerifySingleQuoteFails(c *check.C) {
 func (s *DockerSuite) TestBuildVerboseOut(c *check.C) {
 	name := "testbuildverboseout"
 
-	_, out, err := buildImageWithOut(name,
+	_, out := buildImage(c, name,
 		`FROM busybox
 RUN echo 123`,
 		false)
-
-	if err != nil {
-		c.Fatal(err)
-	}
 	if !strings.Contains(out, "\n123\n") {
 		c.Fatalf("Output should contain %q: %q", "123", out)
 	}
@@ -4496,11 +4258,9 @@ RUN echo 123`,
 
 func (s *DockerSuite) TestBuildWithTabs(c *check.C) {
 	name := "testbuildwithtabs"
-	_, err := buildImage(name,
+	buildImage(c, name,
 		"FROM busybox\nRUN echo\tone\t\ttwo", true)
-	if err != nil {
-		c.Fatal(err)
-	}
+
 	res, err := inspectFieldJSON(name, "ContainerConfig.Cmd")
 	if err != nil {
 		c.Fatal(err)
@@ -4515,14 +4275,11 @@ func (s *DockerSuite) TestBuildWithTabs(c *check.C) {
 func (s *DockerSuite) TestBuildLabels(c *check.C) {
 	name := "testbuildlabel"
 	expected := `{"License":"GPL","Vendor":"Acme"}`
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM busybox
 		LABEL Vendor=Acme
                 LABEL License GPL`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 	res, err := inspectFieldJSON(name, "Config.Labels")
 	if err != nil {
 		c.Fatal(err)
@@ -4535,47 +4292,41 @@ func (s *DockerSuite) TestBuildLabels(c *check.C) {
 func (s *DockerSuite) TestBuildLabelsCache(c *check.C) {
 	name := "testbuildlabelcache"
 
-	id1, err := buildImage(name,
+	id1, _ := buildImage(c, name,
 		`FROM busybox
 		LABEL Vendor=Acme`, false)
-	if err != nil {
-		c.Fatalf("Build 1 should have worked: %v", err)
-	}
 
-	id2, err := buildImage(name,
+	id2, _ := buildImage(c, name,
 		`FROM busybox
 		LABEL Vendor=Acme`, true)
-	if err != nil || id1 != id2 {
-		c.Fatalf("Build 2 should have worked & used cache(%s,%s): %v", id1, id2, err)
+	if id1 != id2 {
+		c.Fatalf("Build 2 should have worked & used cache(%s,%s)", id1, id2)
 	}
 
-	id2, err = buildImage(name,
+	id2, _ = buildImage(c, name,
 		`FROM busybox
 		LABEL Vendor=Acme1`, true)
-	if err != nil || id1 == id2 {
-		c.Fatalf("Build 3 should have worked & NOT used cache(%s,%s): %v", id1, id2, err)
+	if id1 == id2 {
+		c.Fatalf("Build 3 should have worked & NOT used cache(%s,%s)", id1, id2)
 	}
 
-	id2, err = buildImage(name,
+	id2, _ = buildImage(c, name,
 		`FROM busybox
 		LABEL Vendor Acme`, true) // Note: " " and "=" should be same
-	if err != nil || id1 != id2 {
-		c.Fatalf("Build 4 should have worked & used cache(%s,%s): %v", id1, id2, err)
+	if id1 != id2 {
+		c.Fatalf("Build 4 should have worked & used cache(%s,%s)", id1, id2)
 	}
 
 	// Now make sure the cache isn't used by mistake
-	id1, err = buildImage(name,
+	id1, _ = buildImage(c, name,
 		`FROM busybox
        LABEL f1=b1 f2=b2`, false)
-	if err != nil {
-		c.Fatalf("Build 5 should have worked: %q", err)
-	}
 
-	id2, err = buildImage(name,
+	id2, _ = buildImage(c, name,
 		`FROM busybox
        LABEL f1="b1 f2=b2"`, true)
-	if err != nil || id1 == id2 {
-		c.Fatalf("Build 6 should have worked & NOT used the cache(%s,%s): %q", id1, id2, err)
+	if id1 == id2 {
+		c.Fatalf("Build 6 should have worked & NOT used the cache(%s,%s)", id1, id2)
 	}
 
 }
@@ -4584,7 +4335,7 @@ func (s *DockerSuite) TestBuildStderr(c *check.C) {
 	// This test just makes sure that no non-error output goes
 	// to stderr
 	name := "testbuildstderr"
-	_, _, stderr, err := buildImageWithStdoutStderr(name,
+	stderr, err := buildImageWithError(name,
 		"FROM busybox\nRUN echo one", true)
 	if err != nil {
 		c.Fatal(err)
@@ -4970,10 +4721,7 @@ func (s *DockerSuite) TestBuildFromOfficialNames(c *check.C) {
 	}
 	for idx, fromName := range fromNames {
 		imgName := fmt.Sprintf("%s%d", name, idx)
-		_, err := buildImage(imgName, "FROM "+fromName, true)
-		if err != nil {
-			c.Errorf("Build failed using FROM %s: %s", fromName, err)
-		}
+		buildImage(c, imgName, "FROM "+fromName, true)
 		deleteImages(imgName)
 	}
 }
@@ -5115,10 +4863,7 @@ func (s *DockerSuite) TestBuildSpacesWithQuotes(c *check.C) {
 RUN echo "  \
   foo  "`
 
-	_, out, err := buildImageWithOut(name, dockerfile, false)
-	if err != nil {
-		c.Fatal("Build failed:", err)
-	}
+	_, out := buildImage(c, name, dockerfile, false)
 
 	expecting := "\n    foo  \n"
 	if !strings.Contains(out, expecting) {
@@ -5185,12 +4930,12 @@ func (s *DockerSuite) TestBuildMissingArgs(c *check.C) {
 }
 
 func (s *DockerSuite) TestBuildEmptyScratch(c *check.C) {
-	_, out, err := buildImageWithOut("sc", "FROM scratch", true)
+	stderr, err := buildImageWithError("sc", "FROM scratch", true)
 	if err == nil {
 		c.Fatalf("Build was supposed to fail")
 	}
-	if !strings.Contains(out, "No image was generated") {
-		c.Fatalf("Wrong error message: %v", out)
+	if !strings.Contains(stderr, "No image was generated") {
+		c.Fatalf("Wrong error message: %v", stderr)
 	}
 }
 
@@ -5261,7 +5006,7 @@ RUN [ "/hello" ]`, map[string]string{})
 func (s *DockerSuite) TestBuildEmptyStringVolume(c *check.C) {
 	name := "testbuildemptystringvolume"
 
-	_, err := buildImage(name, `
+	_, err := buildImageWithError(name, `
   FROM busybox
   ENV foo=""
   VOLUME $foo
@@ -5309,12 +5054,9 @@ func (s *DockerSuite) TestBuildNoDupOutput(c *check.C) {
 	// Step X  line
 	name := "testbuildnodupoutput"
 
-	_, out, err := buildImageWithOut(name, `
+	_, out := buildImage(c, name, `
   FROM busybox
   RUN env`, false)
-	if err != nil {
-		c.Fatalf("Build should have worked: %q", err)
-	}
 
 	exp := "\nStep 1 : RUN env\n"
 	if !strings.Contains(out, exp) {
@@ -5325,16 +5067,16 @@ func (s *DockerSuite) TestBuildNoDupOutput(c *check.C) {
 func (s *DockerSuite) TestBuildBadCmdFlag(c *check.C) {
 	name := "testbuildbadcmdflag"
 
-	_, out, err := buildImageWithOut(name, `
+	stderr, err := buildImageWithError(name, `
   FROM busybox
   MAINTAINER --boo joe@example.com`, false)
 	if err == nil {
 		c.Fatal("Build should have failed")
 	}
 
-	exp := "\nUnknown flag: boo\n"
-	if !strings.Contains(out, exp) {
-		c.Fatalf("Bad output\nGot:%s\n\nExpected to contain:%s\n", out, exp)
+	exp := "Unknown flag: boo\n"
+	if !strings.Contains(stderr, exp) {
+		c.Fatalf("Bad output\nGot:%s\n\nExpected to contain:%s\n", stderr, exp)
 	}
 }
 
@@ -5342,7 +5084,7 @@ func (s *DockerSuite) TestBuildRUNErrMsg(c *check.C) {
 	// Test to make sure the bad command is quoted with just "s and
 	// not as a Go []string
 	name := "testbuildbadrunerrmsg"
-	_, out, err := buildImageWithOut(name, `
+	stderr, err := buildImageWithError(name, `
   FROM busybox
   RUN badEXE a1 \& a2	a3`, false) // tab between a2 and a3
 	if err == nil {
@@ -5350,8 +5092,8 @@ func (s *DockerSuite) TestBuildRUNErrMsg(c *check.C) {
 	}
 
 	exp := `The command '/bin/sh -c badEXE a1 \& a2	a3' returned a non-zero code: 127`
-	if !strings.Contains(out, exp) {
-		c.Fatalf("RUN doesn't have the correct output:\nGot:%s\nExpected:%s", out, exp)
+	if !strings.Contains(stderr, exp) {
+		c.Fatalf("RUN doesn't have the correct output:\nGot:%s\nExpected:%s", stderr, exp)
 	}
 }
 

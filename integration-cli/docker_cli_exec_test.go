@@ -534,14 +534,11 @@ func (s *DockerSuite) TestExecWithUser(c *check.C) {
 
 func (s *DockerSuite) TestExecWithImageUser(c *check.C) {
 	name := "testbuilduser"
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM busybox
 		RUN echo 'dockerio:x:1001:1001::/bin:/bin/false' >> /etc/passwd
 		USER dockerio`,
 		true)
-	if err != nil {
-		c.Fatalf("Could not build image %s: %v", name, err)
-	}
 
 	dockerCmd(c, "run", "-d", "--name", "dockerioexec", name, "top")
 

@@ -13,7 +13,7 @@ import (
 // sort is not predictable it doesn't always fail.
 func (s *DockerSuite) TestBuildHistory(c *check.C) {
 	name := "testbuildhistory"
-	_, err := buildImage(name, `FROM busybox
+	buildImage(c, name, `FROM busybox
 RUN echo "A"
 RUN echo "B"
 RUN echo "C"
@@ -41,10 +41,6 @@ RUN echo "X"
 RUN echo "Y"
 RUN echo "Z"`,
 		true)
-
-	if err != nil {
-		c.Fatal(err)
-	}
 
 	out, _ := dockerCmd(c, "history", "testbuildhistory")
 	actualValues := strings.Split(out, "\n")[1:27]

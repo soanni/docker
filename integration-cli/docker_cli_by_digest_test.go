@@ -210,13 +210,10 @@ func (s *DockerRegistrySuite) TestBuildByDigest(c *check.C) {
 
 	// do the build
 	name := "buildbydigest"
-	_, err = buildImage(name, fmt.Sprintf(
+	buildImage(c, name, fmt.Sprintf(
 		`FROM %s
      CMD ["/bin/echo", "Hello World"]`, imageReference),
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 
 	// get the build's image id
 	res, err := inspectField(name, "Config.Image")

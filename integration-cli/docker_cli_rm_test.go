@@ -50,19 +50,14 @@ func (s *DockerSuite) TestRmContainerOrphaning(c *check.C) {
 	MAINTAINER Integration Tests`
 
 	// build first dockerfile
-	img1, err := buildImage(img, dockerfile1, true)
-	if err != nil {
-		c.Fatalf("Could not build image %s: %v", img, err)
-	}
+	img1, _ := buildImage(c, img, dockerfile1, true)
 	// run container on first image
 	if out, _, err := dockerCmdWithError("run", img); err != nil {
 		c.Fatalf("Could not run image %s: %v: %s", img, err, out)
 	}
 
 	// rebuild dockerfile with a small addition at the end
-	if _, err := buildImage(img, dockerfile2, true); err != nil {
-		c.Fatalf("Could not rebuild image %s: %v", img, err)
-	}
+	buildImage(c, img, dockerfile2, true)
 	// try to remove the image, should error out.
 	if out, _, err := dockerCmdWithError("rmi", img); err == nil {
 		c.Fatalf("Expected to error out removing the image, but succeeded: %s", out)

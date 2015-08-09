@@ -220,20 +220,17 @@ func (s *DockerSuite) TestCreateLabels(c *check.C) {
 
 func (s *DockerSuite) TestCreateLabelFromImage(c *check.C) {
 	imageName := "testcreatebuildlabel"
-	_, err := buildImage(imageName,
+	buildImage(c, imageName,
 		`FROM busybox
 		LABEL k1=v1 k2=v2`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 
 	name := "test_create_labels_from_image"
 	expected := map[string]string{"k2": "x", "k3": "v3"}
 	dockerCmd(c, "create", "--name", name, "-l", "k2=x", "--label", "k3=v3", imageName)
 
 	actual := make(map[string]string)
-	err = inspectFieldAndMarshall(name, "Config.Labels", &actual)
+	err := inspectFieldAndMarshall(name, "Config.Labels", &actual)
 	if err != nil {
 		c.Fatal(err)
 	}

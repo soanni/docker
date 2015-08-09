@@ -1032,35 +1032,26 @@ func buildImageCmd(name, dockerfile string, useCache bool) *exec.Cmd {
 
 }
 
-func buildImageWithOut(name, dockerfile string, useCache bool) (string, string, error) {
-	buildCmd := buildImageCmd(name, dockerfile, useCache)
-	out, exitCode, err := runCommandWithOutput(buildCmd)
-	if err != nil || exitCode != 0 {
-		return "", out, fmt.Errorf("failed to build the image: %s", out)
-	}
-	id, err := getIDByName(name)
-	if err != nil {
-		return "", out, err
-	}
-	return id, out, nil
-}
-
-func buildImageWithStdoutStderr(name, dockerfile string, useCache bool) (string, string, string, error) {
+// buildImageWithError builds an image that is supposed to fail and return
+// the stderr and the error.
+func buildImageWithError(name, dockerfile string, useCache bool) (string, error) {
 	buildCmd := buildImageCmd(name, dockerfile, useCache)
 	stdout, stderr, exitCode, err := runCommandWithStdoutStderr(buildCmd)
 	if err != nil || exitCode != 0 {
-		return "", stdout, stderr, fmt.Errorf("failed to build the image: %s", stdout)
+		return stderr, fmt.Errorf("failed to build the image with (%s, %s): %s, %s", name, dockerfile, stdout, stderr)
 	}
-	id, err := getIDByName(name)
-	if err != nil {
-		return "", stdout, stderr, err
-	}
-	return id, stdout, stderr, nil
+	return stderr, nil
 }
 
-func buildImage(name, dockerfile string, useCache bool) (string, error) {
-	id, _, err := buildImageWithOut(name, dockerfile, useCache)
-	return id, err
+// buildImage builds an image and return the image id and the output of the command.
+// If there is an error the it will fail the test and stop there.
+func buildImage(c *check.C, name, dockerfile string, useCache bool) (string, string) {
+	buildCmd := buildImageCmd(name, dockerfile, useCache)
+	out, _, err := runCommandWithOutput(buildCmd)
+	c.Assert(err, check.IsNil, check.Commentf("failed to build the image with (%s, %s): %s", name, dockerfile, out))
+	id, err := getIDByName(name)
+	c.Assert(err, check.IsNil)
+	return strings.TrimSpace(id), out
 }
 
 func buildImageFromContext(name string, ctx *FakeContext, useCache bool) (string, error) {

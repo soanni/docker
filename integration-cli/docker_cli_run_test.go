@@ -261,9 +261,7 @@ func (s *DockerSuite) TestRunCreateVolumesInSymlinkDir(c *check.C) {
 	f.Close()
 
 	dockerFile := fmt.Sprintf("FROM busybox\nRUN mkdir -p %s\nRUN ln -s %s /test", dir, dir)
-	if _, err := buildImage(name, dockerFile, false); err != nil {
-		c.Fatal(err)
-	}
+	buildImage(c, name, dockerFile, false)
 
 	dockerCmd(c, "run", "-v", "/test/test", name)
 }
@@ -1324,15 +1322,12 @@ func (s *DockerSuite) TestRunState(c *check.C) {
 // Test for #1737
 func (s *DockerSuite) TestRunCopyVolumeUidGid(c *check.C) {
 	name := "testrunvolumesuidgid"
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM busybox
 		RUN echo 'dockerio:x:1001:1001::/bin:/bin/false' >> /etc/passwd
 		RUN echo 'dockerio:x:1001:' >> /etc/group
 		RUN mkdir -p /hello && touch /hello/test && chown dockerio.dockerio /hello`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 
 	// Test that the uid and gid is copied from the image to the volume
 	out, _ := dockerCmd(c, "run", "--rm", "-v", "/hello", name, "sh", "-c", "ls -l / | grep hello | awk '{print $3\":\"$4}'")
@@ -1345,13 +1340,10 @@ func (s *DockerSuite) TestRunCopyVolumeUidGid(c *check.C) {
 // Test for #1582
 func (s *DockerSuite) TestRunCopyVolumeContent(c *check.C) {
 	name := "testruncopyvolumecontent"
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM busybox
 		RUN mkdir -p /hello/local && echo hello > /hello/local/world`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 
 	// Test that the content is copied from the image to the volume
 	out, _ := dockerCmd(c, "run", "--rm", "-v", "/hello", name, "find", "/hello")
@@ -1362,13 +1354,11 @@ func (s *DockerSuite) TestRunCopyVolumeContent(c *check.C) {
 
 func (s *DockerSuite) TestRunCleanupCmdOnEntrypoint(c *check.C) {
 	name := "testrunmdcleanuponentrypoint"
-	if _, err := buildImage(name,
+	buildImage(c, name,
 		`FROM busybox
 		ENTRYPOINT ["echo"]
 		CMD ["testingpoint"]`,
-		true); err != nil {
-		c.Fatal(err)
-	}
+		true)
 
 	out, exit := dockerCmd(c, "run", "--entrypoint", "whoami", name)
 	if exit != 0 {
@@ -1790,13 +1780,11 @@ func (s *DockerSuite) TestRunCreateVolumeEtc(c *check.C) {
 }
 
 func (s *DockerSuite) TestVolumesNoCopyData(c *check.C) {
-	if _, err := buildImage("dataimage",
+	buildImage(c, "dataimage",
 		`FROM busybox
 		RUN mkdir -p /foo
 		RUN touch /foo/bar`,
-		true); err != nil {
-		c.Fatal(err)
-	}
+		true)
 
 	dockerCmd(c, "run", "--name", "test", "-v", "/foo", "busybox")
 
@@ -1824,12 +1812,10 @@ func (s *DockerSuite) TestRunNoOutputFromPullInStdout(c *check.C) {
 }
 
 func (s *DockerSuite) TestRunVolumesCleanPaths(c *check.C) {
-	if _, err := buildImage("run_volumes_clean_paths",
+	buildImage(c, "run_volumes_clean_paths",
 		`FROM busybox
 		VOLUME /foo/`,
-		true); err != nil {
-		c.Fatal(err)
-	}
+		true)
 
 	dockerCmd(c, "run", "-v", "/foo", "-v", "/bar/", "--name", "dark_helmet", "run_volumes_clean_paths")
 

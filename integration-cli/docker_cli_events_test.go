@@ -195,13 +195,10 @@ func (s *DockerSuite) TestEventsContainerEventsSinceUnixEpoch(c *check.C) {
 
 func (s *DockerSuite) TestEventsImageUntagDelete(c *check.C) {
 	name := "testimageevents"
-	_, err := buildImage(name,
+	buildImage(c, name,
 		`FROM scratch
 		MAINTAINER "docker"`,
 		true)
-	if err != nil {
-		c.Fatal(err)
-	}
 	if err := deleteImages(name); err != nil {
 		c.Fatal(err)
 	}
@@ -522,12 +519,9 @@ func (s *DockerSuite) TestEventsCopy(c *check.C) {
 	since := daemonTime(c).Unix()
 
 	// Build a test image.
-	id, err := buildImage("cpimg", `
+	id, _ := buildImage(c, "cpimg", `
 		  FROM busybox
 		  RUN echo HI > /tmp/file`, true)
-	if err != nil {
-		c.Fatalf("Couldn't create image: %q", err)
-	}
 
 	// Create an empty test file.
 	tempFile, err := ioutil.TempFile("", "test-events-copy-")
