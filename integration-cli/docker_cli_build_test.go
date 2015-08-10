@@ -36,8 +36,11 @@ func (s *DockerSuite) TestBuildJSONEmptyRun(c *check.C) {
 		true)
 
 	if err != nil {
-		c.Fatal("error when dealing with a RUN statement with empty JSON array")
+		c.Fatal(err)
 	}
+
+	// Make sure it runs
+	dockerCmd(c, "run", "--rm", name)
 
 }
 
@@ -179,6 +182,11 @@ func (s *DockerSuite) TestBuildEnvironmentReplacementWorkdir(c *check.C) {
 		c.Fatal(err)
 	}
 
+	out, _ := dockerCmd(c, "run", "--rm", name, "pwd")
+
+	if !strings.Contains(out, "/work") {
+		c.Fatalf("Container workdir expected to be /work, was %s", out)
+	}
 }
 
 func (s *DockerSuite) TestBuildEnvironmentReplacementAddCopy(c *check.C) {
@@ -2243,6 +2251,10 @@ func (s *DockerSuite) TestBuildCmd(c *check.C) {
 	if res != expected {
 		c.Fatalf("Cmd %s, expected %s", res, expected)
 	}
+	out, _ := dockerCmd(c, "run", "-ti", "--rm", name)
+	if out != "Hello World" {
+		c.Fatalf("Expected the container to print 'Hello World', got %s", out)
+	}
 }
 
 func (s *DockerSuite) TestBuildExpose(c *check.C) {
@@ -2379,6 +2391,11 @@ func (s *DockerSuite) TestBuildEmptyEntrypointInheritance(c *check.C) {
 		c.Fatalf("Entrypoint %s, expected %s", res, expected)
 	}
 
+	out, _ := dockerCmd(c, "run", "-ti", "--rm", name, "foo")
+	if out != "foo" {
+		c.Fatalf("Expected the container to print 'foo', got %s", out)
+	}
+
 	_, err = buildImage(name2,
 		fmt.Sprintf(`FROM %s
         ENTRYPOINT []`, name),
@@ -2395,6 +2412,11 @@ func (s *DockerSuite) TestBuildEmptyEntrypointInheritance(c *check.C) {
 
 	if res != expected {
 		c.Fatalf("Entrypoint %s, expected %s", res, expected)
+	}
+
+	out, _ = dockerCmd(c, "run", "-ti", "--rm", name, "echo", "foo")
+	if out != "foo" {
+		c.Fatalf("Expected the container to print 'foo', got %s", out)
 	}
 
 }
@@ -2418,6 +2440,10 @@ func (s *DockerSuite) TestBuildEmptyEntrypoint(c *check.C) {
 		c.Fatalf("Entrypoint %s, expected %s", res, expected)
 	}
 
+	out, _ := dockerCmd(c, "run", "-ti", "--rm", name, "echo", "foo")
+	if out != "foo" {
+		c.Fatalf("Expected the container to print 'foo', got %s", out)
+	}
 }
 
 func (s *DockerSuite) TestBuildEntrypoint(c *check.C) {
@@ -2436,6 +2462,11 @@ func (s *DockerSuite) TestBuildEntrypoint(c *check.C) {
 	}
 	if res != expected {
 		c.Fatalf("Entrypoint %s, expected %s", res, expected)
+	}
+
+	out, _ := dockerCmd(c, "run", "-ti", "--rm", name, "foo")
+	if out != "foo" {
+		c.Fatalf("Expected the container to print 'foo', got %s", out)
 	}
 
 }
@@ -2980,6 +3011,11 @@ CMD ["cat", "/foo"]`,
 
 	if out, _, err := runCommandWithOutput(buildCmd); err != nil {
 		c.Fatalf("build failed to complete: %v %v", out, err)
+	}
+
+	out, _ := dockerCmd(c, "run", "-ti", "--rm", name)
+	if out != "bar" {
+		c.Fatalf("Expected the container to print 'bar', got %s", out)
 	}
 }
 
@@ -4288,6 +4324,11 @@ func (s *DockerSuite) TestBuildCmdShDashC(c *check.C) {
 		c.Fatalf("Expected value %s not in Config.Cmd: %s", expected, res)
 	}
 
+	out, _ := dockerCmd(c, "run", "-ti", "--rm", name)
+	if out != "cmd" {
+		c.Fatalf("Expected the container to print 'cmd', got %s", out)
+	}
+
 }
 
 func (s *DockerSuite) TestBuildCmdSpaces(c *check.C) {
@@ -4425,7 +4466,11 @@ func (s *DockerSuite) TestBuildRunShEntrypoint(c *check.C) {
 		c.Fatal(err)
 	}
 
-	dockerCmd(c, "run", "--rm", name)
+	out, _ := dockerCmd(c, "run", "--rm", name, "foo")
+	// This runs /bin/sh -c /bin/echo foo which fails, thus printing nothing
+	if out != "" {
+		c.Fatalf("Expected the container to print nothing, got %s", out)
+	}
 }
 
 func (s *DockerSuite) TestBuildExoticShellInterpolation(c *check.C) {
