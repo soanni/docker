@@ -477,18 +477,18 @@ func (s *DockerDaemonSuite) TestDaemonLogLevelDebug(c *check.C) {
 	if err := s.d.Start("--log-level=debug"); err != nil {
 		c.Fatal(err)
 	}
-	content, _ := ioutil.ReadFile(s.d.logFile.Name())
+	content, _ := ioutil.ReadFile(s.d.LogFile.Name())
 	if !strings.Contains(string(content), `level=debug`) {
 		c.Fatalf(`Missing level="debug" in log file:\n%s`, string(content))
 	}
 }
 
 func (s *DockerDaemonSuite) TestDaemonLogLevelFatal(c *check.C) {
-	// we creating new daemons to create new logFile
+	// we creating new daemons to create new LogFile
 	if err := s.d.Start("--log-level=fatal"); err != nil {
 		c.Fatal(err)
 	}
-	content, _ := ioutil.ReadFile(s.d.logFile.Name())
+	content, _ := ioutil.ReadFile(s.d.LogFile.Name())
 	if strings.Contains(string(content), `level=debug`) {
 		c.Fatalf(`Should not have level="debug" in log file:\n%s`, string(content))
 	}
@@ -498,7 +498,7 @@ func (s *DockerDaemonSuite) TestDaemonFlagD(c *check.C) {
 	if err := s.d.Start("-D"); err != nil {
 		c.Fatal(err)
 	}
-	content, _ := ioutil.ReadFile(s.d.logFile.Name())
+	content, _ := ioutil.ReadFile(s.d.LogFile.Name())
 	if !strings.Contains(string(content), `level=debug`) {
 		c.Fatalf(`Should have level="debug" in log file using -D:\n%s`, string(content))
 	}
@@ -508,7 +508,7 @@ func (s *DockerDaemonSuite) TestDaemonFlagDebug(c *check.C) {
 	if err := s.d.Start("--debug"); err != nil {
 		c.Fatal(err)
 	}
-	content, _ := ioutil.ReadFile(s.d.logFile.Name())
+	content, _ := ioutil.ReadFile(s.d.LogFile.Name())
 	if !strings.Contains(string(content), `level=debug`) {
 		c.Fatalf(`Should have level="debug" in log file using --debug:\n%s`, string(content))
 	}
@@ -518,7 +518,7 @@ func (s *DockerDaemonSuite) TestDaemonFlagDebugLogLevelFatal(c *check.C) {
 	if err := s.d.Start("--debug", "--log-level=fatal"); err != nil {
 		c.Fatal(err)
 	}
-	content, _ := ioutil.ReadFile(s.d.logFile.Name())
+	content, _ := ioutil.ReadFile(s.d.LogFile.Name())
 	if !strings.Contains(string(content), `level=debug`) {
 		c.Fatalf(`Should have level="debug" in log file when using both --debug and --log-level=fatal:\n%s`, string(content))
 	}
@@ -647,7 +647,7 @@ func (s *DockerDaemonSuite) TestDaemonBridgeExternal(c *check.C) {
 	_, err = d.Cmd("run", "-d", "--name", "ExtContainer", "busybox", "top")
 	c.Assert(err, check.IsNil)
 
-	containerIP := d.findContainerIP("ExtContainer")
+	containerIP := d.FindContainerIP("ExtContainer")
 	ip := net.ParseIP(containerIP)
 	c.Assert(bridgeIPNet.Contains(ip), check.Equals, true,
 		check.Commentf("Container IP-Address must be in the same subnet range : %s",
@@ -724,7 +724,7 @@ func (s *DockerDaemonSuite) TestDaemonBridgeIP(c *check.C) {
 	out, err = d.Cmd("run", "-d", "--name", "test", "busybox", "top")
 	c.Assert(err, check.IsNil)
 
-	containerIP := d.findContainerIP("test")
+	containerIP := d.FindContainerIP("test")
 	ip = net.ParseIP(containerIP)
 	c.Assert(bridgeIPNet.Contains(ip), check.Equals, true,
 		check.Commentf("Container IP-Address must be in the same subnet range : %s",
@@ -967,8 +967,8 @@ func (s *DockerDaemonSuite) TestDaemonLinksIpTablesRulesWhenLinkAndUnlink(c *che
 	_, err = s.d.Cmd("run", "-d", "--name", "parent", "--link", "child:http", "busybox", "top")
 	c.Assert(err, check.IsNil)
 
-	childIP := s.d.findContainerIP("child")
-	parentIP := s.d.findContainerIP("parent")
+	childIP := s.d.FindContainerIP("child")
+	parentIP := s.d.FindContainerIP("parent")
 
 	sourceRule := []string{"-i", bridgeName, "-o", bridgeName, "-p", "tcp", "-s", childIP, "--sport", "80", "-d", parentIP, "-j", "ACCEPT"}
 	destinationRule := []string{"-i", bridgeName, "-o", bridgeName, "-p", "tcp", "-s", parentIP, "--dport", "80", "-d", childIP, "-j", "ACCEPT"}
@@ -1073,7 +1073,7 @@ func (s *DockerDaemonSuite) TestDaemonLoggingDriverDefault(c *check.C) {
 	if out, err := s.d.Cmd("wait", id); err != nil {
 		c.Fatal(out, err)
 	}
-	logPath := filepath.Join(s.d.folder, "graph", "containers", id, id+"-json.log")
+	logPath := filepath.Join(s.d.Folder, "graph", "containers", id, id+"-json.log")
 
 	if _, err := os.Stat(logPath); err != nil {
 		c.Fatal(err)
@@ -1115,7 +1115,7 @@ func (s *DockerDaemonSuite) TestDaemonLoggingDriverDefaultOverride(c *check.C) {
 	if out, err := s.d.Cmd("wait", id); err != nil {
 		c.Fatal(out, err)
 	}
-	logPath := filepath.Join(s.d.folder, "graph", "containers", id, id+"-json.log")
+	logPath := filepath.Join(s.d.Folder, "graph", "containers", id, id+"-json.log")
 
 	if _, err := os.Stat(logPath); err == nil || !os.IsNotExist(err) {
 		c.Fatalf("%s shouldn't exits, error on Stat: %s", logPath, err)
@@ -1136,7 +1136,7 @@ func (s *DockerDaemonSuite) TestDaemonLoggingDriverNone(c *check.C) {
 		c.Fatal(out, err)
 	}
 
-	logPath := filepath.Join(s.d.folder, "graph", "containers", id, id+"-json.log")
+	logPath := filepath.Join(s.d.Folder, "graph", "containers", id, id+"-json.log")
 
 	if _, err := os.Stat(logPath); err == nil || !os.IsNotExist(err) {
 		c.Fatalf("%s shouldn't exits, error on Stat: %s", logPath, err)
@@ -1157,7 +1157,7 @@ func (s *DockerDaemonSuite) TestDaemonLoggingDriverNoneOverride(c *check.C) {
 	if out, err := s.d.Cmd("wait", id); err != nil {
 		c.Fatal(out, err)
 	}
-	logPath := filepath.Join(s.d.folder, "graph", "containers", id, id+"-json.log")
+	logPath := filepath.Join(s.d.Folder, "graph", "containers", id, id+"-json.log")
 
 	if _, err := os.Stat(logPath); err != nil {
 		c.Fatal(err)
@@ -1227,21 +1227,21 @@ func (s *DockerDaemonSuite) TestDaemonDots(c *check.C) {
 
 	s.d.Start("--log-level=debug")
 	s.d.Stop()
-	content, _ := ioutil.ReadFile(s.d.logFile.Name())
+	content, _ := ioutil.ReadFile(s.d.LogFile.Name())
 	if strings.Contains(string(content), "....") {
 		c.Fatalf("Debug level should not have ....\n%s", string(content))
 	}
 
 	s.d.Start("--log-level=error")
 	s.d.Stop()
-	content, _ = ioutil.ReadFile(s.d.logFile.Name())
+	content, _ = ioutil.ReadFile(s.d.LogFile.Name())
 	if strings.Contains(string(content), "....") {
 		c.Fatalf("Error level should not have ....\n%s", string(content))
 	}
 
 	s.d.Start("--log-level=info")
 	s.d.Stop()
-	content, _ = ioutil.ReadFile(s.d.logFile.Name())
+	content, _ = ioutil.ReadFile(s.d.LogFile.Name())
 	if !strings.Contains(string(content), "....") {
 		c.Fatalf("Info level should have ....\n%s", string(content))
 	}
@@ -1322,7 +1322,7 @@ func (s *DockerDaemonSuite) TestDaemonWithWrongkey(c *check.C) {
 		c.Fatalf("It should not be successful to start daemon with wrong key: %v", err)
 	}
 
-	content, _ := ioutil.ReadFile(s.d.logFile.Name())
+	content, _ := ioutil.ReadFile(s.d.LogFile.Name())
 
 	if !strings.Contains(string(content), "Public Key ID does not match") {
 		c.Fatal("Missing KeyID message from daemon logs")
@@ -1434,7 +1434,7 @@ func (s *DockerDaemonSuite) TestHttpsInfoRogueServerCert(c *check.C) {
 func pingContainers(c *check.C, d *Daemon, expectFailure bool) {
 	var dargs []string
 	if d != nil {
-		dargs = []string{"--host", d.sock()}
+		dargs = []string{"--host", d.Sock()}
 	}
 
 	args := append(dargs, "run", "-d", "--name", "container1", "busybox", "top")
@@ -1458,7 +1458,7 @@ func pingContainers(c *check.C, d *Daemon, expectFailure bool) {
 func (s *DockerDaemonSuite) TestDaemonRestartWithSocketAsVolume(c *check.C) {
 	c.Assert(s.d.StartWithBusybox(), check.IsNil)
 
-	socket := filepath.Join(s.d.folder, "docker.sock")
+	socket := filepath.Join(s.d.Folder, "docker.sock")
 
 	out, err := s.d.Cmd("run", "-d", "-v", socket+":/sock", "busybox")
 	c.Assert(err, check.IsNil, check.Commentf("Output: %s", out))
@@ -1471,7 +1471,7 @@ func (s *DockerDaemonSuite) TestCleanupMountsAfterCrash(c *check.C) {
 	out, err := s.d.Cmd("run", "-d", "busybox", "top")
 	c.Assert(err, check.IsNil, check.Commentf("Output: %s", out))
 	id := strings.TrimSpace(out)
-	c.Assert(s.d.cmd.Process.Signal(os.Kill), check.IsNil)
+	c.Assert(s.d.DaemonCmd.Process.Signal(os.Kill), check.IsNil)
 	c.Assert(s.d.Start(), check.IsNil)
 	mountOut, err := exec.Command("mount").CombinedOutput()
 	c.Assert(err, check.IsNil, check.Commentf("Output: %s", mountOut))

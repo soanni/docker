@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/pkg/integration"
 	"github.com/go-check/check"
 )
 
@@ -84,7 +85,7 @@ func (s *DockerSuite) TestApiNetworkStats(c *check.C) {
 	c.Assert(waitRun(id), check.IsNil)
 
 	// Retrieve the container address
-	contIP := findContainerIP(c, id)
+	contIP := integration.FindContainerIP(c, dockerBinary, id)
 	numPings := 10
 
 	// Get the container networking stats before and after pinging the container

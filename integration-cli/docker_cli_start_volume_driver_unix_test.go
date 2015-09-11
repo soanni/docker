@@ -253,7 +253,7 @@ func (s *DockerExternalVolumeSuite) TestStartExternalNamedVolumeDriverCheckBindL
 
 	img := "test-checkbindlocalvolume"
 
-	_, err := buildImageWithOutInDamon(s.d.sock(), img, dockerfile, true)
+	_, err := buildImageWithOutInDamon(s.d.Sock(), img, dockerfile, true)
 	c.Assert(err, check.IsNil)
 
 	out, err := s.d.Cmd("run", "--rm", "--name", "test-data-nobind", "-v", "external-volume-test:/tmp/external-volume-test", "--volume-driver", "test-external-volume-driver", img, "cat", "/nobindthenlocalvol/test")
