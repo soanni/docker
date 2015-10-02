@@ -962,12 +962,7 @@ func attach(streamConfig *streamConfig, openStdin, stdinOnce, tty bool, stdin io
 		}()
 
 		var err error
-		if tty {
-			_, err = copyEscapable(cStdin, stdin)
-		} else {
-			_, err = io.Copy(cStdin, stdin)
-
-		}
+		_, err = io.Copy(cStdin, stdin)
 		if err == io.ErrClosedPipe {
 			err = nil
 		}
