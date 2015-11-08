@@ -156,18 +156,13 @@ func (s *DockerSuite) TestTagOfficialNames(c *check.C) {
 // ensure tags can not match digests
 func (s *DockerSuite) TestTagMatchesDigest(c *check.C) {
 	testRequires(c, DaemonIsLinux)
-	if err := pullImageIfNotExist("busybox:latest"); err != nil {
-		c.Fatal("couldn't find the busybox:latest image locally and failed to pull it")
-	}
+	c.Assert(pullImageIfNotExist("busybox:latest"), checker.IsNil,
+		check.Commentf("couldn't find the busybox:latest image locally and failed to pull it"))
 	digest := "busybox@sha256:abcdef76720241213f5303bda7704ec4c2ef75613173910a56fb1b6e20251507"
 	// test setting tag fails
 	_, _, err := dockerCmdWithError("tag", "-f", "busybox:latest", digest)
-	if err == nil {
-		c.Fatal("digest tag a name should have failed")
-	}
+	c.Assert(err, checker.NotNil, check.Commentf("digest tag a name should have failed"))
 	// check that no new image matches the digest
 	_, _, err = dockerCmdWithError("inspect", digest)
-	if err == nil {
-		c.Fatal("inspecting by digest should have failed")
-	}
+	c.Assert(err, checker.NotNil, check.Commentf("inspecting by digest should have failed"))
 }
