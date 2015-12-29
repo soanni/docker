@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 	"testing"
 
 	"github.com/docker/docker/pkg/reexec"
@@ -21,7 +23,27 @@ func Test(t *testing.T) {
 }
 
 func init() {
+	// TODO Start daemon
+	// TODO Setup daemon (make sure stuff)
+	setupDaemon()
+
 	check.Suite(&DockerSuite{})
+	// TODO Stop daemon
+}
+
+func setupDaemon() {
+	cmd := exec.Command("bash", "../hack/make/.ensure-emptyfs")
+	cmd.Env = append(cmd.Env, "DEST=../bundles")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	_, err := runCommand(cmd)
+	if err != nil {
+		fmt.Printf("Error while setuping the default deamon", err)
+		os.Exit(1)
+	}
+	// TODO ensureEmptyFs()
+	// TODO ensureFrozenImages()
+	// TODO ensureHttpServer()
 }
 
 type DockerSuite struct {
