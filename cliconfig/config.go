@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/docker/docker/pkg/homedir"
+	"github.com/docker/docker/pkg/xdg"
 	"github.com/docker/engine-api/types"
 )
 
@@ -27,12 +28,17 @@ const (
 )
 
 var (
-	configDir = os.Getenv("DOCKER_CONFIG")
+	configDir    = os.Getenv("DOCKER_CONFIG")
+	oldConfigDir string
 )
 
 func init() {
 	if configDir == "" {
-		configDir = filepath.Join(homedir.Get(), configFileDir)
+		configDir, err := xdg.SearchConfigPath("docker")
+		if os.IsNotExist(err) {
+			configDir = xdg.ConfigPath("docker")
+			oldConfigDir = filepath.Join(homedir.Get(), configFileDir)
+		}
 	}
 }
 
