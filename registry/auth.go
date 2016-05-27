@@ -8,9 +8,12 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/distribution/registry/client/auth"
 	"github.com/docker/distribution/registry/client/transport"
+	"github.com/docker/engine-api/client/transport/cancellable"
 	"github.com/docker/engine-api/types"
 	registrytypes "github.com/docker/engine-api/types/registry"
 )
@@ -21,7 +24,7 @@ const (
 )
 
 // loginV1 tries to register/login to the v1 registry server.
-func loginV1(authConfig *types.AuthConfig, apiEndpoint APIEndpoint, userAgent string) (string, string, error) {
+func loginV1(ctx context.Context, authConfig *types.AuthConfig, apiEndpoint APIEndpoint, userAgent string) (string, string, error) {
 	registryEndpoint, err := apiEndpoint.ToV1Endpoint(userAgent, nil)
 	if err != nil {
 		return "", "", err
@@ -42,7 +45,9 @@ func loginV1(authConfig *types.AuthConfig, apiEndpoint APIEndpoint, userAgent st
 		return "", "", err
 	}
 	req.SetBasicAuth(authConfig.Username, authConfig.Password)
-	resp, err := registryEndpoint.client.Do(req)
+
+	// resp, err := registryEndpoint.client.Do(req)
+	resp, err := cancellable.Do(ctx, registryEndpoint.client, req)
 	if err != nil {
 		// fallback when request could not be completed
 		return "", "", fallbackError{
@@ -102,7 +107,7 @@ func (err fallbackError) Error() string {
 // loginV2 tries to login to the v2 registry server. The given registry
 // endpoint will be pinged to get authorization challenges. These challenges
 // will be used to authenticate against the registry to validate credentials.
-func loginV2(authConfig *types.AuthConfig, endpoint APIEndpoint, userAgent string) (string, string, error) {
+func loginV2(ctx context.Context, authConfig *types.AuthConfig, endpoint APIEndpoint, userAgent string) (string, string, error) {
 	logrus.Debugf("attempting v2 login to registry endpoint %s", strings.TrimRight(endpoint.URL.String(), "/")+"/v2/")
 
 	modifiers := DockerHeaders(userAgent, nil)
@@ -146,7 +151,8 @@ func loginV2(authConfig *types.AuthConfig, endpoint APIEndpoint, userAgent strin
 		return "", "", err
 	}
 
-	resp, err := loginClient.Do(req)
+	// resp, err := loginClient.Do(req)
+	resp, err := cancellable.Do(ctx, loginClient, req)
 	if err != nil {
 		if !foundV2 {
 			err = fallbackError{err: err}

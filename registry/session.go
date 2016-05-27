@@ -18,6 +18,8 @@ import (
 	"strconv"
 	"strings"
 
+	"golang.org/x/net/context"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/docker/docker/pkg/httputils"
@@ -25,6 +27,7 @@ import (
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/tarsum"
 	"github.com/docker/docker/reference"
+	"github.com/docker/engine-api/client/transport/cancellable"
 	"github.com/docker/engine-api/types"
 	registrytypes "github.com/docker/engine-api/types/registry"
 )
@@ -721,7 +724,7 @@ func shouldRedirect(response *http.Response) bool {
 }
 
 // SearchRepositories performs a search against the remote repository
-func (r *Session) SearchRepositories(term string) (*registrytypes.SearchResults, error) {
+func (r *Session) SearchRepositories(ctx context.Context, term string) (*registrytypes.SearchResults, error) {
 	logrus.Debugf("Index server: %s", r.indexEndpoint)
 	u := r.indexEndpoint.String() + "search?q=" + url.QueryEscape(term)
 
@@ -731,7 +734,8 @@ func (r *Session) SearchRepositories(term string) (*registrytypes.SearchResults,
 	}
 	// Have the AuthTransport send authentication, when logged in.
 	req.Header.Set("X-Docker-Token", "true")
-	res, err := r.client.Do(req)
+	// res, err := r.client.Do(req)
+	res, err := cancellable.Do(ctx, r.client, req)
 	if err != nil {
 		return nil, err
 	}

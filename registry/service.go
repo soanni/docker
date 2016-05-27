@@ -74,7 +74,7 @@ func (s *DefaultService) Auth(ctx context.Context, authConfig *types.AuthConfig,
 			login = loginV1
 		}
 
-		status, token, err = login(authConfig, endpoint, userAgent)
+		status, token, err = login(ctx, authConfig, endpoint, userAgent)
 		if err == nil {
 			return
 		}
@@ -139,9 +139,9 @@ func (s *DefaultService) Search(ctx context.Context, term string, authConfig *ty
 			localName = strings.SplitN(localName, "/", 2)[1]
 		}
 
-		return r.SearchRepositories(localName)
+		return r.SearchRepositories(ctx, localName)
 	}
-	return r.SearchRepositories(remoteName)
+	return r.SearchRepositories(ctx, remoteName)
 }
 
 // ResolveRepository splits a repository name into its components
