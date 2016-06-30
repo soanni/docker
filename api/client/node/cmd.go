@@ -35,7 +35,7 @@ func NewNodeCommand(dockerCli *client.DockerCli) *cobra.Command {
 	return cmd
 }
 
-func nodeReference(client apiclient.APIClient, ctx context.Context, ref string) (string, error) {
+func NodeReference(client apiclient.APIClient, ctx context.Context, ref string) (string, error) {
 	// The special value "self" for a node reference is mapped to the current
 	// node, hence the node ID is retrieved using the `/info` endpoint.
 	if ref == "self" {

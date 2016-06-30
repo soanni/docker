@@ -44,7 +44,7 @@ func runTasks(dockerCli *client.DockerCli, opts tasksOptions) error {
 	client := dockerCli.Client()
 	ctx := context.Background()
 
-	nodeRef, err := nodeReference(client, ctx, opts.nodeID)
+	nodeRef, err := NodeReference(client, ctx, opts.nodeID)
 	if err != nil {
 		return nil
 	}
@@ -59,6 +59,18 @@ func runTasks(dockerCli *client.DockerCli, opts tasksOptions) error {
 		filter.Add("desired_state", string(swarm.TaskStateRunning))
 		filter.Add("desired_state", string(swarm.TaskStateAccepted))
 
+	}
+
+	if filter.Include("service") {
+		services := filter.Get("service")
+		for _, serviceFilter := range services {
+			filter.Del("service", serviceFilter)
+			service, _, err := client.ServiceInspectWithRaw(ctx, serviceFilter)
+			if err != nil {
+				return err
+			}
+			filter.Add("service", service.ID)
+		}
 	}
 
 	tasks, err := client.TaskList(
