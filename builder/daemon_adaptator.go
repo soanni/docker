@@ -81,8 +81,8 @@ func (a *DaemonAdaptator) ContainerKill(ctx context.Context, container, sigStr s
 	return a.backend.ContainerKill(container, uint64(sig))
 }
 
-func (a *DaemonAdaptator) ContainerStart(containerID string, hostConfig *container.HostConfig) error {
-	return a.backend.ContainerStart(containerID, hostConfig)
+func (a *DaemonAdaptator) ContainerStart(ctx context.Context, container string, options types.ContainerStartOptions) error {
+	return a.backend.ContainerStart(container, nil)
 }
 
 func (a *DaemonAdaptator) ContainerWait(containerID string, timeout time.Duration) (int, error) {
