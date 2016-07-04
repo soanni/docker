@@ -13,7 +13,6 @@ import (
 	"github.com/docker/docker/api/types/backend"
 	"github.com/docker/docker/builder"
 	"github.com/docker/docker/builder/dockerfile/parser"
-	"github.com/docker/docker/image"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/reference"
 	"github.com/docker/engine-api/types"
@@ -266,9 +265,8 @@ func (b *Builder) build(stdout io.Writer, stderr io.Writer, out io.Writer) (stri
 		return "", fmt.Errorf("No image was generated. Is your Dockerfile empty?")
 	}
 
-	imageID := image.ID(b.image)
 	for _, rt := range repoAndTags {
-		if err := b.docker.TagImageWithReference(imageID, rt); err != nil {
+		if err := b.docker.ImageTag(b.clientCtx, b.image, rt.String()); err != nil {
 			return "", err
 		}
 	}

@@ -108,7 +108,7 @@ func (fi *HashedFileInfo) SetHash(h string) {
 type Client interface {
 	// ContainerCreate creates a new Docker container and returns potential warnings
 	ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, containerName string) (types.ContainerCreateResponse, error)
-	// ContainerRemoveoptions removes a container specified by `id`.
+	// ContainerRemove removes a container specified by `id`.
 	ContainerRemove(ctx context.Context, container string, options types.ContainerRemoveOptions) error
 	// ContainerCommit creates a new Docker image from an existing Docker container.
 	ContainerCommit(ctx context.Context, container string, options types.ContainerCommitOptions) (types.ContainerCommitResponse, error)
@@ -118,12 +118,13 @@ type Client interface {
 	ContainerStart(ctx context.Context, container string, options types.ContainerStartOptions) error
 	// ContainerWait stops processing until the given container is stopped.
 	ContainerWait(ctx context.Context, container string) (int, error)
+	// ImageTag tags an image with newTag
+	ImageTag(ctx context.Context, image, ref string) error
 
 	// TODO(vdemeester) Migrate this to client methods
 	// GetImageOnBuild looks up a Docker image referenced by `name`.
 	GetImageOnBuild(name string) (Image, error)
-	// TagImage tags an image with newTag
-	TagImageWithReference(image.ID, reference.Named) error
+
 	// PullOnBuild tells Docker to pull image referenced by `name`.
 	PullOnBuild(ctx context.Context, name string, authConfigs map[string]types.AuthConfig, output io.Writer) (Image, error)
 	// ContainerAttachRaw attaches to container.

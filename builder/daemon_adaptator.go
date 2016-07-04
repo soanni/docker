@@ -3,7 +3,6 @@ package builder
 import (
 	"io"
 	"syscall"
-	"time"
 
 	"golang.org/x/net/context"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/docker/docker/reference"
 	"github.com/docker/engine-api/types"
 	"github.com/docker/engine-api/types/container"
+
 	"github.com/docker/engine-api/types/network"
 )
 
@@ -30,8 +30,12 @@ func (a *DaemonAdaptator) GetImageOnBuild(name string) (Image, error) {
 	return a.backend.GetImageOnBuild(name)
 }
 
-func (a *DaemonAdaptator) TagImageWithReference(image image.ID, reference reference.Named) error {
-	return a.backend.TagImageWithReference(image, reference)
+func (a *DaemonAdaptator) ImageTag(ctx context.Context, img, ref string) error {
+	named, err := reference.ParseNamed(ref)
+	if err != nil {
+		return err
+	}
+	return a.backend.TagImageWithReference(image.ID(img), named)
 }
 
 func (a *DaemonAdaptator) PullOnBuild(ctx context.Context, name string, authConfigs map[string]types.AuthConfig, output io.Writer) (Image, error) {
