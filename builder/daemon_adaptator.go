@@ -51,8 +51,19 @@ func (a *DaemonAdaptator) ContainerRemove(ctx context.Context, container string,
 	})
 }
 
-func (a *DaemonAdaptator) Commit(container string, config *backend.ContainerCommitConfig) (string, error) {
-	return a.backend.Commit(container, config)
+func (a *DaemonAdaptator) ContainerCommit(ctx context.Context, container string, options types.ContainerCommitOptions) (types.ContainerCommitResponse, error) {
+	imageID, err := a.backend.Commit(container, &backend.ContainerCommitConfig{
+		ContainerCommitConfig: types.ContainerCommitConfig{
+			Author:  options.Author,
+			Comment: options.Comment,
+			Pause:   options.Pause,
+			Config:  options.Config,
+		},
+		Changes: options.Changes,
+	})
+	return types.ContainerCommitResponse{
+		ID: imageID,
+	}, err
 }
 
 func (a *DaemonAdaptator) ContainerKill(containerID string, sig uint64) error {

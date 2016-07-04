@@ -106,8 +106,14 @@ func (fi *HashedFileInfo) SetHash(h string) {
 
 // Client abstract calls to a Docker Daemon using engine-api client interface.
 type Client interface {
-	// TODO: use digest reference instead of name
+	// ContainerCreate creates a new Docker container and returns potential warnings
+	ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, containerName string) (types.ContainerCreateResponse, error)
+	// ContainerRemoveoptions removes a container specified by `id`.
+	ContainerRemove(ctx context.Context, container string, options types.ContainerRemoveOptions) error
+	// ContainerCommit creates a new Docker image from an existing Docker container.
+	ContainerCommit(ctx context.Context, container string, options types.ContainerCommitOptions) (types.ContainerCommitResponse, error)
 
+	// TODO(vdemeester) Migrate this to client methods
 	// GetImageOnBuild looks up a Docker image referenced by `name`.
 	GetImageOnBuild(name string) (Image, error)
 	// TagImage tags an image with newTag
@@ -116,12 +122,6 @@ type Client interface {
 	PullOnBuild(ctx context.Context, name string, authConfigs map[string]types.AuthConfig, output io.Writer) (Image, error)
 	// ContainerAttachRaw attaches to container.
 	ContainerAttachRaw(cID string, stdin io.ReadCloser, stdout, stderr io.Writer, stream bool) error
-	// ContainerCreate creates a new Docker container and returns potential warnings
-	ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, containerName string) (types.ContainerCreateResponse, error)
-	// ContainerRemoveoptions removes a container specified by `id`.
-	ContainerRemove(ctx context.Context, container string, options types.ContainerRemoveOptions) error
-	// Commit creates a new Docker image from an existing Docker container.
-	Commit(string, *backend.ContainerCommitConfig) (string, error)
 	// ContainerKill stops the container execution abruptly.
 	ContainerKill(containerID string, sig uint64) error
 	// ContainerStart starts a new container

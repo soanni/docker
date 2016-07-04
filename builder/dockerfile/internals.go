@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/docker/docker/api/types/backend"
 	"github.com/docker/docker/builder"
 	"github.com/docker/docker/builder/dockerfile/parser"
 	"github.com/docker/docker/pkg/archive"
@@ -69,21 +68,19 @@ func (b *Builder) commit(id string, autoCmd strslice.StrSlice, comment string) e
 	autoConfig := *b.runConfig
 	autoConfig.Cmd = autoCmd
 
-	commitCfg := &backend.ContainerCommitConfig{
-		ContainerCommitConfig: types.ContainerCommitConfig{
-			Author: b.maintainer,
-			Pause:  true,
-			Config: &autoConfig,
-		},
+	commitOptions := types.ContainerCommitOptions{
+		Author: b.maintainer,
+		Pause:  true,
+		Config: &autoConfig,
 	}
 
 	// Commit the container
-	imageID, err := b.docker.Commit(id, commitCfg)
+	commitResp, err := b.docker.ContainerCommit(b.clientCtx, id, commitOptions)
 	if err != nil {
 		return err
 	}
 
-	b.image = imageID
+	b.image = commitResp.ID
 	return nil
 }
 
