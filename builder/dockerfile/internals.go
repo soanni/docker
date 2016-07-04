@@ -555,7 +555,7 @@ func (b *Builder) run(cID string) (err error) {
 		return err
 	}
 
-	if ret, _ := b.docker.ContainerWait(cID, -1); ret != 0 {
+	if ret, _ := b.docker.ContainerWait(b.clientCtx, cID); ret != 0 {
 		// TODO: change error type, because jsonmessage.JSONError assumes HTTP
 		return &jsonmessage.JSONError{
 			Message: fmt.Sprintf("The command '%s' returned a non-zero code: %d", strings.Join(b.runConfig.Cmd, " "), ret),

@@ -85,8 +85,8 @@ func (a *DaemonAdaptator) ContainerStart(ctx context.Context, container string, 
 	return a.backend.ContainerStart(container, nil)
 }
 
-func (a *DaemonAdaptator) ContainerWait(containerID string, timeout time.Duration) (int, error) {
-	return a.backend.ContainerWait(containerID, timeout)
+func (a *DaemonAdaptator) ContainerWait(ctx context.Context, container string) (int, error) {
+	return a.backend.ContainerWait(container, -1)
 }
 
 func (a *DaemonAdaptator) ContainerUpdateCmdOnBuild(containerID string, cmd []string) error {
