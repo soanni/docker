@@ -55,7 +55,7 @@ type Builder struct {
 	Stderr io.Writer
 	Output io.Writer
 
-	docker    builder.Backend
+	docker    builder.Client
 	context   builder.Context
 	clientCtx context.Context
 	cancel    context.CancelFunc
@@ -82,7 +82,7 @@ type BuildManager struct {
 }
 
 // NewBuildManager creates a BuildManager.
-func NewBuildManager(b builder.Backend) (bm *BuildManager) {
+func NewBuildManager(b builder.Backend) *BuildManager {
 	return &BuildManager{backend: b}
 }
 
@@ -100,7 +100,8 @@ func (bm *BuildManager) BuildFromContext(ctx context.Context, src io.ReadCloser,
 	if len(dockerfileName) > 0 {
 		buildOptions.Dockerfile = dockerfileName
 	}
-	b, err := NewBuilder(ctx, buildOptions, bm.backend, builder.DockerIgnoreContext{ModifiableContext: buildContext}, nil)
+	client := builder.NewDaemonAdaptator(bm.backend)
+	b, err := NewBuilder(ctx, buildOptions, client, builder.DockerIgnoreContext{ModifiableContext: buildContext}, nil)
 	if err != nil {
 		return "", err
 	}
@@ -110,7 +111,7 @@ func (bm *BuildManager) BuildFromContext(ctx context.Context, src io.ReadCloser,
 // NewBuilder creates a new Dockerfile builder from an optional dockerfile and a Config.
 // If dockerfile is nil, the Dockerfile specified by Config.DockerfileName,
 // will be read from the Context passed to Build().
-func NewBuilder(clientCtx context.Context, config *types.ImageBuildOptions, backend builder.Backend, buildContext builder.Context, dockerfile io.ReadCloser) (b *Builder, err error) {
+func NewBuilder(clientCtx context.Context, config *types.ImageBuildOptions, backend builder.Client, buildContext builder.Context, dockerfile io.ReadCloser) (b *Builder, err error) {
 	if config == nil {
 		config = new(types.ImageBuildOptions)
 	}

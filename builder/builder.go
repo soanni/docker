@@ -103,6 +103,39 @@ func (fi *HashedFileInfo) SetHash(h string) {
 	fi.FileHash = h
 }
 
+// Client abstract calls to a Docker Daemon using engine-api client interface.
+type Client interface {
+	// TODO: use digest reference instead of name
+
+	// GetImageOnBuild looks up a Docker image referenced by `name`.
+	GetImageOnBuild(name string) (Image, error)
+	// TagImage tags an image with newTag
+	TagImageWithReference(image.ID, reference.Named) error
+	// PullOnBuild tells Docker to pull image referenced by `name`.
+	PullOnBuild(ctx context.Context, name string, authConfigs map[string]types.AuthConfig, output io.Writer) (Image, error)
+	// ContainerAttachRaw attaches to container.
+	ContainerAttachRaw(cID string, stdin io.ReadCloser, stdout, stderr io.Writer, stream bool) error
+	// ContainerCreate creates a new Docker container and returns potential warnings
+	ContainerCreate(types.ContainerCreateConfig) (types.ContainerCreateResponse, error)
+	// ContainerRm removes a container specified by `id`.
+	ContainerRm(name string, config *types.ContainerRmConfig) error
+	// Commit creates a new Docker image from an existing Docker container.
+	Commit(string, *backend.ContainerCommitConfig) (string, error)
+	// ContainerKill stops the container execution abruptly.
+	ContainerKill(containerID string, sig uint64) error
+	// ContainerStart starts a new container
+	ContainerStart(containerID string, hostConfig *container.HostConfig) error
+	// ContainerWait stops processing until the given container is stopped.
+	ContainerWait(containerID string, timeout time.Duration) (int, error)
+	// ContainerUpdateCmdOnBuild updates container.Path and container.Args
+	ContainerUpdateCmdOnBuild(containerID string, cmd []string) error
+
+	// ContainerCopy copies/extracts a source FileInfo to a destination path inside a container
+	// specified by a container object.
+	// FIXME(vdemeester) This one is gonna be tricky to get right using `CopyToContainer`
+	CopyOnBuild(containerID string, destPath string, src FileInfo, decompress bool) error
+}
+
 // Backend abstracts calls to a Docker Daemon.
 type Backend interface {
 	// TODO: use digest reference instead of name
