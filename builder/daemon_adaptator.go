@@ -43,8 +43,12 @@ func (a *DaemonAdaptator) ContainerCreate(ctx context.Context, config *container
 	return a.backend.ContainerCreate(types.ContainerCreateConfig{Config: config})
 }
 
-func (a *DaemonAdaptator) ContainerRm(name string, config *types.ContainerRmConfig) error {
-	return a.backend.ContainerRm(name, config)
+func (a *DaemonAdaptator) ContainerRemove(ctx context.Context, container string, options types.ContainerRemoveOptions) error {
+	return a.backend.ContainerRm(container, &types.ContainerRmConfig{
+		ForceRemove:  options.Force,
+		RemoveVolume: options.RemoveVolumes,
+		RemoveLink:   options.RemoveLinks,
+	})
 }
 
 func (a *DaemonAdaptator) Commit(container string, config *backend.ContainerCommitConfig) (string, error) {

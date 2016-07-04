@@ -118,8 +118,8 @@ type Client interface {
 	ContainerAttachRaw(cID string, stdin io.ReadCloser, stdout, stderr io.Writer, stream bool) error
 	// ContainerCreate creates a new Docker container and returns potential warnings
 	ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, containerName string) (types.ContainerCreateResponse, error)
-	// ContainerRm removes a container specified by `id`.
-	ContainerRm(name string, config *types.ContainerRmConfig) error
+	// ContainerRemoveoptions removes a container specified by `id`.
+	ContainerRemove(ctx context.Context, container string, options types.ContainerRemoveOptions) error
 	// Commit creates a new Docker image from an existing Docker container.
 	Commit(string, *backend.ContainerCommitConfig) (string, error)
 	// ContainerKill stops the container execution abruptly.

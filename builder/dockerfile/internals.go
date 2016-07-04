@@ -570,11 +570,11 @@ func (b *Builder) run(cID string) (err error) {
 }
 
 func (b *Builder) removeContainer(c string) error {
-	rmConfig := &types.ContainerRmConfig{
-		ForceRemove:  true,
-		RemoveVolume: true,
+	removeOptions := types.ContainerRemoveOptions{
+		Force:         true,
+		RemoveVolumes: true,
 	}
-	if err := b.docker.ContainerRm(c, rmConfig); err != nil {
+	if err := b.docker.ContainerRemove(b.clientCtx, c, removeOptions); err != nil {
 		fmt.Fprintf(b.Stdout, "Error removing intermediate container %s: %v\n", stringid.TruncateID(c), err)
 		return err
 	}
