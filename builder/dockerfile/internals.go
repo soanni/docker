@@ -181,7 +181,7 @@ func (b *Builder) runContextCommand(args []string, allowRemote bool, allowLocalD
 		return nil
 	}
 
-	container, err := b.docker.ContainerCreate(types.ContainerCreateConfig{Config: b.runConfig})
+	container, err := b.docker.ContainerCreate(b.clientCtx, b.runConfig, nil, nil, "")
 	if err != nil {
 		return err
 	}
@@ -505,10 +505,7 @@ func (b *Builder) create() (string, error) {
 	config := *b.runConfig
 
 	// Create the container
-	c, err := b.docker.ContainerCreate(types.ContainerCreateConfig{
-		Config:     b.runConfig,
-		HostConfig: hostConfig,
-	})
+	c, err := b.docker.ContainerCreate(b.clientCtx, b.runConfig, hostConfig, nil, "")
 	if err != nil {
 		return "", err
 	}

@@ -9,6 +9,7 @@ import (
 	"github.com/docker/docker/reference"
 	"github.com/docker/engine-api/types"
 	"github.com/docker/engine-api/types/container"
+	"github.com/docker/engine-api/types/network"
 	"golang.org/x/net/context"
 )
 
@@ -38,8 +39,8 @@ func (a *DaemonAdaptator) ContainerAttachRaw(cID string, stdin io.ReadCloser, st
 	return a.backend.ContainerAttachRaw(cID, stdin, stdout, stderr, stream)
 }
 
-func (a *DaemonAdaptator) ContainerCreate(config types.ContainerCreateConfig) (types.ContainerCreateResponse, error) {
-	return a.backend.ContainerCreate(config)
+func (a *DaemonAdaptator) ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, containerName string) (types.ContainerCreateResponse, error) {
+	return a.backend.ContainerCreate(types.ContainerCreateConfig{Config: config})
 }
 
 func (a *DaemonAdaptator) ContainerRm(name string, config *types.ContainerRmConfig) error {
