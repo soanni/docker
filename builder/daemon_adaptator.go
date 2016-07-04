@@ -2,15 +2,18 @@ package builder
 
 import (
 	"io"
+	"syscall"
 	"time"
+
+	"golang.org/x/net/context"
 
 	"github.com/docker/docker/api/types/backend"
 	"github.com/docker/docker/image"
+	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/docker/reference"
 	"github.com/docker/engine-api/types"
 	"github.com/docker/engine-api/types/container"
 	"github.com/docker/engine-api/types/network"
-	"golang.org/x/net/context"
 )
 
 // DaemonAdaptator adapts the builder.Client interface to the builder.Backend
@@ -66,8 +69,16 @@ func (a *DaemonAdaptator) ContainerCommit(ctx context.Context, container string,
 	}, err
 }
 
-func (a *DaemonAdaptator) ContainerKill(containerID string, sig uint64) error {
-	return a.backend.ContainerKill(containerID, sig)
+func (a *DaemonAdaptator) ContainerKill(ctx context.Context, container, sigStr string) error {
+	var sig syscall.Signal
+	// If we have a signal, look at it. Otherwise, do nothing
+	if sigStr != "" {
+		var err error
+		if sig, err = signal.ParseSignal(sigStr); err != nil {
+			return err
+		}
+	}
+	return a.backend.ContainerKill(container, uint64(sig))
 }
 
 func (a *DaemonAdaptator) ContainerStart(containerID string, hostConfig *container.HostConfig) error {

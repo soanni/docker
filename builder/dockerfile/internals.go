@@ -538,7 +538,7 @@ func (b *Builder) run(cID string) (err error) {
 		select {
 		case <-b.clientCtx.Done():
 			logrus.Debugln("Build cancelled, killing and removing container:", cID)
-			b.docker.ContainerKill(cID, 0)
+			b.docker.ContainerKill(b.clientCtx, cID, "SIGKILL")
 			b.removeContainer(cID)
 			cancelErrCh <- errCancelled
 		case <-finished:

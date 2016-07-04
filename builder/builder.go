@@ -112,6 +112,8 @@ type Client interface {
 	ContainerRemove(ctx context.Context, container string, options types.ContainerRemoveOptions) error
 	// ContainerCommit creates a new Docker image from an existing Docker container.
 	ContainerCommit(ctx context.Context, container string, options types.ContainerCommitOptions) (types.ContainerCommitResponse, error)
+	// ContainerKill stops the container execution abruptly.
+	ContainerKill(ctx context.Context, container, signal string) error
 
 	// TODO(vdemeester) Migrate this to client methods
 	// GetImageOnBuild looks up a Docker image referenced by `name`.
@@ -122,8 +124,6 @@ type Client interface {
 	PullOnBuild(ctx context.Context, name string, authConfigs map[string]types.AuthConfig, output io.Writer) (Image, error)
 	// ContainerAttachRaw attaches to container.
 	ContainerAttachRaw(cID string, stdin io.ReadCloser, stdout, stderr io.Writer, stream bool) error
-	// ContainerKill stops the container execution abruptly.
-	ContainerKill(containerID string, sig uint64) error
 	// ContainerStart starts a new container
 	ContainerStart(containerID string, hostConfig *container.HostConfig) error
 	// ContainerWait stops processing until the given container is stopped.
