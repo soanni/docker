@@ -58,81 +58,52 @@ func runInspect(dockerCli *client.DockerCli, opts inspectOptions) error {
 		return nil, nil, fmt.Errorf("Error: no such service: %s", ref)
 	}
 
-	if !opts.pretty {
-		return inspect.Inspect(dockerCli.Out(), opts.refs, opts.format, getRef)
+	format := opts.format
+	if opts.pretty {
+		format = `ID:		{{.ID}}
+Name:		{{.Spec.Name}}{{if .Spec.Labels}}
+Labels:
+{{range $key, $value := .Spec.Labels}}
+ - {{$key}}${{$value}}
+{{end}}{{end}}{{if .Spec.Mode.Global}}
+Mode:		Global
+{{else}}
+Mode:		Replicated{{end}}
+Placement:
+ Strategy:	Spread{{if .Spec.TaskTemplate.Placement}}{{ if .Spec.TaskTemplate.Placement.Constraints}} Constraints	{{range $index, $element := .Spec.TaskTemplate.Placement.Constraints}}{{if $index}}, {{end}}{{$element}}{{end}}{{end}}{{end}}
+UpdateConfig:
+ Parallelism:	{{.Spec.UpdateConfig.Delay}}{{ if .Spec.UpdateConfig.Delay.Nanoseconds }}
+ Delay:		{{.Spec.UpdateConfig.Delay}}{{end}}
+{{$containerSpec := .Spec.TaskTemplate.ContainerSpec}}ContainerSpec:
+ Image:		{{$containerSpec.Image}}{{if $containerSpec.Command}}
+ Command:	{{ range $index, $element := $containerSpec.Command}}{{if $index}} {{end}}{{$element}}{{end}}{{end}}{{if $containerSpec.Args}}
+ Args:		{{ range $index, $element := $containerSpec.Args}}{{if $index}} {{end}}{{$element}}{{end}}{{end}}{{if $containerSpec.Env}}
+ Env:		{{ range $index, $element := $containerSpec.Env}}{{if $index}} {{end}}{{$element}}{{end}}{{end}}{{if $containerSpec.Dir}}
+ Dir:		{{$containerSpec.Dir}}{{end}}{{if $containerSpec.User}}
+ User:		{{end}}{{if $containerSpec.Mounts}}
+ Mounts:{{range $containerSpec.Mounts}}
+  Target = {{.Target}}
+  Source = {{.Source}}
+  ReadOnly = {{.ReadOnly}}
+  Type = {{.Type}}
+{{end}}{{end}}{{if .Spec.TaskTemplate.Resources}}
+Resources:{{if .Spec.TaskTemplate.Resources.Reservations}}
+Reservations:{{if .Spec.TaskTemplate.Resources.Reservations.NanoCPUs}}
+ CPU:		{{.Spec.TaskTemplate.Resources.Reservations.NanoCPUs}}{{end}}{{if .Spec.TaskTemplate.Resources.Reservations.MemoryBytes}}
+ Memory:		{{.Spec.TaskTemplate.Resources.Reservations.MemoryBytes}}{{end}}
+{{end}}{{if .Spec.TaskTemplate.Resources.Limits}}
+Limits:{{if .Spec.TaskTemplate.Resources.Limits.NanoCPUs}}
+ CPU:		{{.Spec.TaskTemplate.Resources.Limits.NanoCPUs}}{{end}}{{if .Spec.TaskTemplate.Resources.Limits.MemoryBytes}}
+ Memory:		{{.Spec.TaskTemplate.Resources.Limits.MemoryBytes}}{{end}}
+{{end}}{{end}}
+`
 	}
-
-	return printHumanFriendly(dockerCli.Out(), opts.refs, getRef)
-}
-
-func printHumanFriendly(out io.Writer, refs []string, getRef inspect.GetRefFunc) error {
-	for idx, ref := range refs {
-		obj, _, err := getRef(ref)
-		if err != nil {
-			return err
-		}
-		printService(out, obj.(swarm.Service))
-
-		// TODO: better way to do this?
-		// print extra space between objects, but not after the last one
-		if idx+1 != len(refs) {
-			fmt.Fprintf(out, "\n\n")
-		}
-	}
-	return nil
+	return inspect.Inspect(dockerCli.Out(), opts.refs, format, getRef)
+	// return printHumanFriendly(dockerCli.Out(), opts.refs, getRef)
 }
 
 // TODO: use a template
 func printService(out io.Writer, service swarm.Service) {
-	fmt.Fprintf(out, "ID:\t\t%s\n", service.ID)
-	fmt.Fprintf(out, "Name:\t\t%s\n", service.Spec.Name)
-	if service.Spec.Labels != nil {
-		fmt.Fprintln(out, "Labels:")
-		for k, v := range service.Spec.Labels {
-			fmt.Fprintf(out, " - %s=%s\n", k, v)
-		}
-	}
-
-	if service.Spec.Mode.Global != nil {
-		fmt.Fprintln(out, "Mode:\t\tGlobal")
-	} else {
-		fmt.Fprintln(out, "Mode:\t\tReplicated")
-		if service.Spec.Mode.Replicated.Replicas != nil {
-			fmt.Fprintf(out, " Replicas:\t%d\n", *service.Spec.Mode.Replicated.Replicas)
-		}
-	}
-	fmt.Fprintln(out, "Placement:")
-	fmt.Fprintln(out, " Strategy:\tSpread")
-	if service.Spec.TaskTemplate.Placement != nil && len(service.Spec.TaskTemplate.Placement.Constraints) > 0 {
-		ioutils.FprintfIfNotEmpty(out, " Constraints\t: %s\n", strings.Join(service.Spec.TaskTemplate.Placement.Constraints, ", "))
-	}
-	fmt.Fprintf(out, "UpdateConfig:\n")
-	fmt.Fprintf(out, " Parallelism:\t%d\n", service.Spec.UpdateConfig.Parallelism)
-	if service.Spec.UpdateConfig.Delay.Nanoseconds() > 0 {
-		fmt.Fprintf(out, " Delay:\t\t%s\n", service.Spec.UpdateConfig.Delay)
-	}
-	fmt.Fprintf(out, "ContainerSpec:\n")
-	printContainerSpec(out, service.Spec.TaskTemplate.ContainerSpec)
-
-	if service.Spec.TaskTemplate.Resources != nil {
-		fmt.Fprintln(out, "Resources:")
-		printResources := func(out io.Writer, r *swarm.Resources) {
-			if r.NanoCPUs != 0 {
-				fmt.Fprintf(out, " CPU:\t\t%g\n", float64(r.NanoCPUs)/1e9)
-			}
-			if r.MemoryBytes != 0 {
-				fmt.Fprintf(out, " Memory:\t\t%s\n", units.BytesSize(float64(r.MemoryBytes)))
-			}
-		}
-		if service.Spec.TaskTemplate.Resources.Reservations != nil {
-			fmt.Fprintln(out, "Reservations:")
-			printResources(out, service.Spec.TaskTemplate.Resources.Reservations)
-		}
-		if service.Spec.TaskTemplate.Resources.Limits != nil {
-			fmt.Fprintln(out, "Limits:")
-			printResources(out, service.Spec.TaskTemplate.Resources.Limits)
-		}
-	}
 	if len(service.Spec.Networks) > 0 {
 		fmt.Fprintf(out, "Networks:")
 		for _, n := range service.Spec.Networks {
@@ -151,26 +122,19 @@ func printService(out io.Writer, service swarm.Service) {
 	}
 }
 
-func printContainerSpec(out io.Writer, containerSpec swarm.ContainerSpec) {
-	fmt.Fprintf(out, " Image:\t\t%s\n", containerSpec.Image)
-	if len(containerSpec.Command) > 0 {
-		fmt.Fprintf(out, " Command:\t%s\n", strings.Join(containerSpec.Command, " "))
-	}
-	if len(containerSpec.Args) > 0 {
-		fmt.Fprintf(out, " Args:\t\t%s\n", strings.Join(containerSpec.Args, " "))
-	}
-	if len(containerSpec.Env) > 0 {
-		fmt.Fprintf(out, " Env:\t\t%s\n", strings.Join(containerSpec.Env, " "))
-	}
-	ioutils.FprintfIfNotEmpty(out, " Dir\t\t%s\n", containerSpec.Dir)
-	ioutils.FprintfIfNotEmpty(out, " User\t\t%s\n", containerSpec.User)
-	if len(containerSpec.Mounts) > 0 {
-		fmt.Fprintln(out, " Mounts:")
-		for _, v := range containerSpec.Mounts {
-			fmt.Fprintf(out, "  Target = %s\n", v.Target)
-			fmt.Fprintf(out, "  Source = %s\n", v.Source)
-			fmt.Fprintf(out, "  ReadOnly = %v\n", v.ReadOnly)
-			fmt.Fprintf(out, "  Type = %v\n", v.Type)
+func printHumanFriendly(out io.Writer, refs []string, getRef inspect.GetRefFunc) error {
+	for idx, ref := range refs {
+		obj, _, err := getRef(ref)
+		if err != nil {
+			return err
+		}
+		printService(out, obj.(swarm.Service))
+
+		// TODO: better way to do this?
+		// print extra space between objects, but not after the last one
+		if idx+1 != len(refs) {
+			fmt.Fprintf(out, "\n\n")
 		}
 	}
+	return nil
 }

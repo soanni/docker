@@ -52,5 +52,5 @@ func runInspect(dockerCli *client.DockerCli, opts inspectOptions) error {
 	return inspect.Inspect(dockerCli.Out(), []string{""}, opts.format, getRef)
 	//	}
 
-	//return printHumanFriendly(dockerCli.Out(), opts.refs, getRef)
+	// return printHumanFriendly(dockerCli.Out(), opts.refs, getRef)
 }
