@@ -68,7 +68,17 @@ func (daemon *Daemon) killWithSignal(container *container.Container, sig int) er
 		return errNotRunning{container.ID}
 	}
 
-	container.ExitOnNext()
+	if container.Config.StopSignal != "" {
+		containerStopSignal, err := signal.ParseSignal(container.Config.StopSignal)
+		if err != nil {
+			return err
+		}
+		if containerStopSignal == syscall.Signal(sig) {
+			container.ExitOnNext()
+		}
+	} else {
+		container.ExitOnNext()
+	}
 
 	if !daemon.IsShuttingDown() {
 		container.HasBeenManuallyStopped = true
@@ -104,6 +114,9 @@ func (daemon *Daemon) Kill(container *container.Container) error {
 	if !container.IsRunning() {
 		return errNotRunning{container.ID}
 	}
+
+	// FIXME(vdemeester) should we disable restartpolicy for SIGKILL or not ?
+	container.ExitOnNext()
 
 	// 1. Send SIGKILL
 	if err := daemon.killPossiblyDeadProcess(container, int(syscall.SIGKILL)); err != nil {
