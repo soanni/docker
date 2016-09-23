@@ -82,7 +82,9 @@ func (p *cmdProbe) run(ctx context.Context, d *Daemon, container *container.Cont
 	execConfig.User = container.Config.User
 
 	d.registerExecCommand(container, execConfig)
-	d.LogContainerEvent(container, "exec_create: "+execConfig.Entrypoint+" "+strings.Join(execConfig.Args, " "))
+	d.LogContainerEventWithAttributes(container, "exec_create", map[string]string{
+		"command": execConfig.Entrypoint + " " + strings.Join(execConfig.Args, " "),
+	})
 
 	output := &limitedBuffer{}
 	err := d.ContainerExecStart(ctx, execConfig.ID, nil, output, output)
@@ -137,7 +139,9 @@ func handleProbeResult(d *Daemon, c *container.Container, result *types.Healthch
 	}
 
 	if oldStatus != h.Status {
-		d.LogContainerEvent(c, "health_status: "+h.Status)
+		d.LogContainerEventWithAttributes(c, "health_status", map[string]string{
+			"state": h.Status,
+		})
 	}
 }
 

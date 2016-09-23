@@ -217,15 +217,17 @@ func (r *controller) Start(ctx context.Context) error {
 				// If we get here, something has gone wrong but we want to exit
 				// and report anyways.
 				return ErrContainerDestroyed
-			case "health_status: unhealthy":
-				// in this case, we stop the container and report unhealthy status
-				if err := r.Shutdown(ctx); err != nil {
-					return errors.Wrap(err, "unhealthy container shutdown failed")
+			case "health_status":
+				if event.Actor.Attributes["state"] == "unhealthy" {
+					// in this case, we stop the container and report unhealthy status
+					if err := r.Shutdown(ctx); err != nil {
+						return errors.Wrap(err, "unhealthy container shutdown failed")
+					}
+					// set health check error, and wait for container to fully exit ("die" event)
+					healthErr = ErrContainerUnhealthy
+				} else {
+					return nil
 				}
-				// set health check error, and wait for container to fully exit ("die" event)
-				healthErr = ErrContainerUnhealthy
-			case "health_status: healthy":
-				return nil
 			}
 		case <-ctx.Done():
 			return ctx.Err()
@@ -447,8 +449,10 @@ func (r *controller) checkHealth(ctx context.Context) error {
 			}
 
 			switch event.Action {
-			case "health_status: unhealthy":
-				return ErrContainerUnhealthy
+			case "health_status":
+				if event.Actor.Attributes["state"] == "unhealthy" {
+					return ErrContainerUnhealthy
+				}
 			}
 		}
 	}

@@ -136,7 +136,9 @@ func (d *Daemon) ContainerExecCreate(name string, config *types.ExecConfig) (str
 
 	d.registerExecCommand(container, execConfig)
 
-	d.LogContainerEvent(container, "exec_create: "+execConfig.Entrypoint+" "+strings.Join(execConfig.Args, " "))
+	d.LogContainerEventWithAttributes(container, "exec_create", map[string]string{
+		"command": execConfig.Entrypoint + " " + strings.Join(execConfig.Args, " "),
+	})
 
 	return execConfig.ID, nil
 }
@@ -178,7 +180,9 @@ func (d *Daemon) ContainerExecStart(ctx context.Context, name string, stdin io.R
 
 	c := d.containers.Get(ec.ContainerID)
 	logrus.Debugf("starting exec command %s in container %s", ec.ID, c.ID)
-	d.LogContainerEvent(c, "exec_start: "+ec.Entrypoint+" "+strings.Join(ec.Args, " "))
+	d.LogContainerEventWithAttributes(c, "exec_start", map[string]string{
+		"command": ec.Entrypoint + " " + strings.Join(ec.Args, " "),
+	})
 
 	if ec.OpenStdin && stdin != nil {
 		r, w := io.Pipe()

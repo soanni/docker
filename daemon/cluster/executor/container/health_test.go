@@ -74,8 +74,10 @@ func TestHealthStates(t *testing.T) {
 
 	// send an event and expect to get expectedErr
 	// if expectedErr is nil, shouldn't get any error
-	logAndExpect := func(msg string, expectedErr error) {
-		daemon.LogContainerEvent(c, msg)
+	logAndExpect := func(action, status string, expectedErr error) {
+		daemon.LogContainerEventWithAttributes(c, action, map[string]string{
+			"state": status,
+		})
 
 		timer := time.NewTimer(1 * time.Second)
 		defer timer.Stop()
@@ -93,10 +95,10 @@ func TestHealthStates(t *testing.T) {
 	}
 
 	// events that are ignored by checkHealth
-	logAndExpect("health_status: running", nil)
-	logAndExpect("health_status: healthy", nil)
-	logAndExpect("die", nil)
+	logAndExpect("health_status", "running", nil)
+	logAndExpect("health_status", "healthy", nil)
+	logAndExpect("die", "", nil)
 
 	// unhealthy event will be caught by checkHealth
-	logAndExpect("health_status: unhealthy", ErrContainerUnhealthy)
+	logAndExpect("health_status", "unhealthy", ErrContainerUnhealthy)
 }
